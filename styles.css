@@ -1,0 +1,428 @@
+:root {
+  --bg: #0f172a;
+  --panel: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --customer: #16a34a;
+  --visit: #2563eb;
+  --spotta: #94a3b8;   /* 1 · Spotta       — grey  */
+  --kobbi: #92400e;    /* 2 · Senda á Kobba — brown */
+  --progress: #7c3aed; /* 3 · Spjalla      — purple */
+  --emailed: #eab308;  /* 4 · Senda tölvupóst — yellow */
+  /* 5 · Nýr kúnni = --customer (green) */
+  --done: #dc2626;
+  --samkeppni: #ea580c; /* Samkeppni (Hring/Málma) — orange */
+  --hringras: #ea580c;
+  --malmar: #ea580c;   /* merged into orange Samkeppni */
+  --fura: #1d4ed8;
+  --shadow: 0 6px 24px rgba(0,0,0,.18);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text); }
+#map { position: absolute; inset: 0; }
+
+.hidden { display: none !important; }
+
+/* ---------- List button ---------- */
+.iconbtn {
+  position: absolute; top: 10px; right: 10px; z-index: 1100;
+  width: 44px; height: 44px;
+  border: none; border-radius: 10px; background: var(--panel);
+  font-size: 20px; line-height: 1; cursor: pointer; box-shadow: var(--shadow);
+}
+#fitBtn { right: 62px; }
+
+/* ---------- Search box (Leaflet geocoder) ---------- */
+.leaflet-control-geocoder { box-shadow: var(--shadow) !important; border-radius: 10px !important; }
+.leaflet-control-geocoder-form input { font-size: 16px; min-width: 220px; }
+.leaflet-control-geocoder-expanded { padding: 4px 6px; }
+
+/* ---------- Legend / filter chips ---------- */
+#legend {
+  position: absolute; left: 10px; bottom: 18px; z-index: 1100;
+  display: flex; flex-wrap: wrap; gap: 6px; max-width: 70%;
+}
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600;
+  cursor: pointer; box-shadow: var(--shadow); color: var(--text);
+}
+.chip.active { outline: 2px solid var(--visit); }
+.dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+.dot.customer { background: var(--customer); }
+.dot.visit { background: var(--spotta); }
+.dot.spotta { background: var(--spotta); }
+.dot.kobbi { background: var(--kobbi); }
+.dot.progress { background: var(--progress); }
+.dot.emailed { background: var(--emailed); }
+.dot.done { background: var(--done); }
+.dot.samkeppni { background: var(--samkeppni); }
+.dot.hringras { background: var(--hringras); }
+.dot.malmar { background: var(--malmar); }
+.dot.fura { background: var(--fura); }
+
+/* ---------- Status bar ---------- */
+#statusbar {
+  position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 1100;
+  font-size: 12px; color: var(--muted); background: rgba(255,255,255,.9);
+  padding: 4px 10px; border-radius: 999px; box-shadow: var(--shadow); white-space: nowrap;
+}
+
+/* ---------- Map markers ---------- */
+.marker {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.4); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 13px; line-height: 1;
+}
+.marker.customer { background: var(--customer); }
+.marker.visit { background: var(--spotta); }
+.marker.spotta { background: var(--spotta); }
+.marker.kobbi { background: var(--kobbi); }
+.marker.progress { background: var(--progress); }
+.marker.emailed { background: var(--emailed); }
+.marker.done { background: var(--done); }
+.marker.samkeppni { background: var(--samkeppni); }
+.marker.hringras { background: var(--hringras); }
+.marker.malmar { background: var(--malmar); }
+.marker.fura { background: var(--fura); width: 40px; height: 40px; font-size: 20px; border-width: 4px; }
+.marker.temp { background: #f59e0b; animation: pulse 1.2s infinite; }
+@keyframes pulse { 0%{transform:scale(1)} 50%{transform:scale(1.25)} 100%{transform:scale(1)} }
+
+/* ---------- Bottom sheet ---------- */
+#sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1500;
+  background: var(--panel); border-radius: 18px 18px 0 0;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow); max-height: 85vh; overflow-y: auto;
+}
+.sheet-handle { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 6px auto 10px; }
+#sheet h2 { margin: 0 0 12px; font-size: 18px; }
+#sheet label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 12px; }
+#sheet input, #sheet select, #sheet textarea {
+  display: block; width: 100%; margin-top: 5px; padding: 11px 12px;
+  font-size: 16px; border: 1px solid var(--line); border-radius: 10px;
+  font-family: inherit; color: var(--text); background: #fff;
+}
+#sheet textarea { resize: vertical; }
+.sheet-actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.sheet-actions .spacer { flex: 1; }
+
+.btn { border: none; border-radius: 10px; padding: 11px 16px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn.primary { background: var(--visit); color: #fff; }
+.btn.ghost { background: #f1f5f9; color: var(--text); }
+.btn.danger { background: #fee2e2; color: var(--no); }
+
+/* ---------- List panel ---------- */
+#listPanel {
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(420px, 100%);
+  background: var(--panel); z-index: 1600; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; padding: 12px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+}
+.list-header { display: flex; align-items: center; justify-content: space-between; }
+.list-header h2 { margin: 0; font-size: 18px; }
+#listSearch { width: 100%; padding: 10px 12px; margin: 10px 0; font-size: 16px; border: 1px solid var(--line); border-radius: 10px; }
+#listItems { flex: 1; overflow-y: auto; }
+.list-row { display: flex; align-items: center; gap: 10px; padding: 11px 6px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.list-row .name { font-weight: 600; }
+.list-row .sub { font-size: 12px; color: var(--muted); }
+.list-row .meta { flex: 1; min-width: 0; }
+.list-row .meta > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Popup ---------- */
+.leaflet-popup-content { margin: 12px 14px; font-size: 14px; }
+.leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: var(--shadow); }
+.popup-name { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+.popup-status { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.popup-notes { font-size: 13px; white-space: pre-wrap; margin-bottom: 8px; }
+.popup-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.popup-edit, .popup-checklist, .popup-maps {
+  border: none; border-radius: 8px; padding: 6px 12px;
+  font-size: 13px; font-weight: 600; cursor: pointer; color: #fff;
+}
+.popup-edit { background: var(--visit); }
+.popup-checklist { background: var(--progress); }
+.popup-maps { background: var(--customer); }
+
+/* ---------- Setup banner + PIN screen ---------- */
+#setupBanner, #pinGate {
+  position: absolute; inset: 0; z-index: 2000; background: var(--bg); color: #fff;
+  display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center;
+}
+#pinGate { z-index: 2100; }
+#setupBanner .box, #pinGate .box { max-width: 460px; }
+#setupBanner h1, #pinGate h1 { font-size: 22px; margin-bottom: 16px; }
+#setupBanner p { color: #cbd5e1; line-height: 1.5; }
+#setupBanner code { background: rgba(255,255,255,.12); padding: 2px 6px; border-radius: 6px; }
+#pinInput {
+  font-size: 30px; text-align: center; letter-spacing: 12px;
+  width: 190px; padding: 12px; border-radius: 12px; border: none;
+  background: #1e293b; color: #fff; caret-color: #fff;
+}
+#pinError { color: #fca5a5; margin-top: 12px; }
+
+/* ============================================================
+   Top tab bar (3 parts: Map, Checklist, Companies)
+   ============================================================ */
+#tabs {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1700;
+  height: 50px;
+  display: flex;
+  background: #0f172a;
+  padding-top: env(safe-area-inset-top, 0);
+}
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  border-bottom: 3px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab.active {
+  color: #fff;
+  border-bottom-color: var(--visit);
+}
+
+/* ============================================================
+   View containers — each "part" of the app
+   ============================================================ */
+.view {
+  position: absolute;
+  top: 50px;
+  left: 0; right: 0; bottom: 0;
+}
+.view.hidden { display: none !important; }
+
+/* ============================================================
+   Panel wrapper used by Checklist + Companies
+   ============================================================ */
+.panel {
+  position: absolute; inset: 0;
+  overflow-y: auto;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  background: #f8fafc;
+}
+.panel h2 { margin: 0 0 4px; font-size: 22px; }
+.panel .muted { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+
+/* ============================================================
+   PART 2 — Checklist form
+   ============================================================ */
+#checklistForm label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+#checklistForm input[type="text"],
+#checklistForm input[type="email"],
+#checklistForm input[type="date"],
+#checklistForm textarea {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding: 11px 12px;
+  font-size: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+}
+#checklistForm textarea { resize: vertical; }
+#checklistForm fieldset {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px 12px;
+  margin: 0 0 14px;
+  background: #fff;
+}
+#checklistForm legend {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0 6px;
+}
+.checks {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 12px;
+}
+.check {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500 !important;
+  color: var(--text) !important;
+  margin: 0 !important;
+  font-size: 15px !important;
+}
+.check input[type="checkbox"] {
+  width: 18px; height: 18px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+.check.big {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  height: 100%;
+}
+.row.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.row.two > label { margin-bottom: 0; }
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.form-actions .btn { flex: 1; padding: 13px 16px; font-size: 16px; }
+#checklistMsg { margin-top: 12px; text-align: center; font-size: 14px; }
+#checklistMsg.success { color: var(--customer); font-weight: 600; }
+#checklistMsg.error { color: var(--done); font-weight: 600; }
+
+/* ============================================================
+   PART 3 — Companies cards
+   ============================================================ */
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.panel-head h2 { margin: 0; flex: 0 0 auto; }
+#companiesSearch {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+/* Autocomplete dropdown for the Fyrirtæki field */
+.autocomplete-wrap { position: relative; }
+.suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 20;
+}
+.suggestion-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--line);
+}
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:hover { background: #f1f5f9; }
+.suggestion-item .name { font-weight: 600; font-size: 15px; color: var(--text); }
+.suggestion-item .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.sort-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.sort-btn {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+}
+.sort-btn.active {
+  background: var(--visit);
+  color: #fff;
+  border-color: var(--visit);
+}
+
+.company-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.04);
+}
+.company-card h3 { margin: 0 0 4px; font-size: 17px; }
+.company-card .meta { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.company-card .row-line {
+  display: flex; flex-wrap: wrap; gap: 4px 14px;
+  font-size: 13px;
+  margin: 4px 0;
+}
+.company-card .row-line b { color: var(--text); font-weight: 600; }
+.company-card .materials {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: 8px 0;
+}
+.company-card .mat-chip {
+  background: #e0e7ff;
+  color: #3730a3;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.company-card .priorities {
+  background: #fef3c7;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin: 8px 0;
+  white-space: pre-wrap;
+}
+.company-card .notes {
+  font-size: 13px;
+  color: var(--text);
+  margin: 6px 0;
+  white-space: pre-wrap;
+}
+.company-card .actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px;
+}
+.company-card .actions .btn { padding: 9px 14px; font-size: 14px; }
+.sent-tag {
+  display: inline-block;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.forklift-mini {
+  font-size: 14px;
+  opacity: 0.55;
+  margin-left: 2px;
+  cursor: help;
+}
+
+/* The PIN gate and setup banner must stay above the tab bar */
+#setupBanner, #pinGate { z-index: 2000; }
+#pinGate { z-index: 2100; }

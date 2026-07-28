@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ScrapMap</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+
+  <!-- Leaflet (OpenStreetMap) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Address search (free Nominatim geocoder, no key) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
+  <script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+
+  <!-- "Locate me" button -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.css" />
+  <script src="https://unpkg.com/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.js"></script>
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Top tab bar -->
+  <nav id="tabs">
+    <button class="tab active" data-view="map">🗺 Map</button>
+    <button class="tab" data-view="checklist">📋 Checklist</button>
+    <button class="tab" data-view="companies">📊 Companies</button>
+  </nav>
+
+  <!-- ============================================================ -->
+  <!-- PART 1 — Map -->
+  <!-- ============================================================ -->
+  <div id="mapView" class="view">
+    <div id="map"></div>
+
+    <button id="listBtn" class="iconbtn" title="Show list">&#9776;</button>
+    <button id="fitBtn" class="iconbtn" title="Show all pins">&#9974;</button>
+
+    <div id="legend">
+      <button class="chip" data-filter="all">Allt</button>
+      <button class="chip" data-filter="spotta"><span class="dot spotta"></span>1 · Spotta</button>
+      <button class="chip" data-filter="kobbi"><span class="dot kobbi"></span>2 · Senda á Kobba</button>
+      <button class="chip" data-filter="progress"><span class="dot progress"></span>3 · Spjalla</button>
+      <button class="chip" data-filter="emailed"><span class="dot emailed"></span>4 · Tölvupóstur</button>
+      <button class="chip" data-filter="customer"><span class="dot customer"></span>5 · Nýr kúnni</button>
+      <button class="chip" data-filter="done"><span class="dot done"></span>Búið</button>
+      <button class="chip" data-filter="samkeppni"><span class="dot samkeppni"></span>Samkeppni</button>
+      <button class="chip" data-filter="fura"><span class="dot fura"></span>Fura</button>
+    </div>
+
+    <div id="statusbar"></div>
+
+    <!-- Bottom sheet (add/edit a pin) -->
+    <div id="sheet" class="hidden">
+      <div class="sheet-handle"></div>
+      <h2 id="sheetTitle">New place</h2>
+
+      <label>Name
+        <input id="f_name" type="text" placeholder="Company or address" />
+      </label>
+
+      <label>Address
+        <input id="f_address" type="text" placeholder="Street, town" />
+      </label>
+
+      <label>Status
+        <select id="f_status">
+          <option value="spotta">⚪ 1 · Spotta</option>
+          <option value="kobbi">🟤 2 · Senda á Kobba</option>
+          <option value="progress">🟣 3 · Spjalla</option>
+          <option value="emailed">🟡 4 · Senda tölvupóst</option>
+          <option value="customer">🟢 5 · Nýr kúnni</option>
+          <option value="done">🔴 Búið / ekki áhugi</option>
+          <option value="samkeppni">🟠 Samkeppni (Hring/Málma)</option>
+          <option value="fura">🔵 Fura (okkar)</option>
+        </select>
+      </label>
+
+      <label>Notes
+        <textarea id="f_notes" rows="3" placeholder="Who you spoke to, what's left, phone number…"></textarea>
+      </label>
+
+      <div class="sheet-actions">
+        <button id="deleteBtn" class="btn danger hidden">Delete</button>
+        <div class="spacer"></div>
+        <button id="cancelBtn" class="btn ghost">Cancel</button>
+        <button id="saveBtn" class="btn primary">Save</button>
+      </div>
+    </div>
+
+    <!-- Slide-over: full list of map places -->
+    <div id="listPanel" class="hidden">
+      <div class="list-header">
+        <h2>All places</h2>
+        <button id="listClose" class="iconbtn">&times;</button>
+      </div>
+      <input id="listSearch" type="text" placeholder="Filter by name…" />
+      <div id="listItems"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- PART 2 — Checklist (new visit form) -->
+  <!-- ============================================================ -->
+  <div id="checklistView" class="view hidden">
+    <div class="panel">
+      <h2>Ný heimsókn</h2>
+      <p class="muted">Fylltu þetta út eftir hverja heimsókn. Vistast undir <b>Companies</b>.</p>
+
+      <form id="checklistForm" autocomplete="off">
+        <label>Fyrirtæki
+          <div class="autocomplete-wrap">
+            <input name="company" type="text" placeholder="Nafn fyrirtækis" autocomplete="off" required />
+            <div id="companySuggestions" class="suggestions hidden"></div>
+          </div>
+        </label>
+
+        <label>Heimilisfang
+          <input name="address" type="text" placeholder="Götuheiti, póstnúmer bær" autocomplete="off" />
+        </label>
+
+        <label>Tengill
+          <input name="contact" type="text" placeholder="Nafn tengiliðs" />
+        </label>
+
+        <label>Email
+          <input name="email" type="email" placeholder="netfang@fyrirtaeki.is" />
+        </label>
+
+        <fieldset>
+          <legend>Hvaða efni</legend>
+          <div class="checks">
+            <label class="check"><input type="checkbox" name="materials" value="Járn" /> Járn</label>
+            <label class="check"><input type="checkbox" name="materials" value="Ál" /> Ál</label>
+            <label class="check"><input type="checkbox" name="materials" value="Kopar" /> Kopar / Eir</label>
+            <label class="check"><input type="checkbox" name="materials" value="Hreinn koparvír" /> Hreinn koparvír</label>
+            <label class="check"><input type="checkbox" name="materials" value="Messing" /> Messing / Látún</label>
+            <label class="check"><input type="checkbox" name="materials" value="Blý" /> Blý</label>
+            <label class="check"><input type="checkbox" name="materials" value="Ryðfrítt stál" /> Ryðfrítt stál</label>
+            <label class="check"><input type="checkbox" name="materials" value="Zink" /> Zink</label>
+            <label class="check"><input type="checkbox" name="materials" value="Rafgeymar" /> Rafgeymar</label>
+            <label class="check"><input type="checkbox" name="materials" value="Hjólbarðar" /> Hjólbarðar</label>
+          </div>
+        </fieldset>
+
+        <label class="check big">
+          <input type="checkbox" name="hasForklift" />
+          Lyftari á staðnum
+        </label>
+
+        <label>Athugasemdir
+          <textarea name="notes" rows="3" placeholder="Litlar athugasemdir, símanúmer, eitthvað sem ekki má gleyma…"></textarea>
+        </label>
+
+        <div class="form-actions">
+          <button type="button" id="checklistReset" class="btn ghost">Hreinsa</button>
+          <button type="submit" id="checklistSave" class="btn primary">Vista heimsókn</button>
+        </div>
+        <p id="checklistMsg" class="muted hidden"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- PART 3 — Companies (table of saved visits) -->
+  <!-- ============================================================ -->
+  <div id="companiesView" class="view hidden">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Companies</h2>
+        <input id="companiesSearch" type="text" placeholder="Search…" />
+      </div>
+      <div class="sort-row">
+        <button class="sort-btn active" data-sort="newest">🕐 Nýjast</button>
+        <button class="sort-btn" data-sort="distance">📍 Næst Fura</button>
+        <button class="sort-btn" data-sort="alpha">🔤 A–Ö</button>
+      </div>
+      <p id="companiesEmpty" class="muted hidden">No visits saved yet. Go to the Checklist tab.</p>
+      <div id="companiesList"></div>
+    </div>
+  </div>
+
+  <!-- Setup + PIN overlays sit above everything -->
+  <div id="setupBanner" class="hidden"></div>
+
+  <div id="pinGate" class="hidden">
+    <div class="box">
+      <h1>Enter code</h1>
+      <input id="pinInput" type="tel" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••" />
+      <p id="pinError" class="hidden">Wrong code, try again</p>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+_backup_*.json
+.firebase/
+.DS_Store
+node_modules/
