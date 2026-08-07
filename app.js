@@ -140,6 +140,7 @@ function initApp() {
     bidsvar: "🟤 ⏳ Bíð eftir svari (Kobbi)",
     progress: "🟣 3 · Spjalla",
     emailed: "🟡 4 · Senda tölvupóst",
+    bidpost: "🟡 ⏳ Búið að senda (bíð eftir svari)",
     customer: "🟢 5 · Nýr kúnni",
     done: "🔴 Búið / ekki áhugi",
     samkeppni: "🟠 Samkeppni (Hring/Málma)",
@@ -941,9 +942,9 @@ function initApp() {
     }
     try {
       const place = findPlaceByCompany(v.company);
-      if (place && ["spotta", "kobbi", "bidsvar", "progress", "visit"].includes(place.status)) {
+      if (place && ["spotta", "kobbi", "bidsvar", "progress", "emailed", "visit"].includes(place.status)) {
         await updateDoc(doc(db, "places", place.id), {
-          status: "emailed",
+          status: "bidpost",
           updatedAt: serverTimestamp(),
         });
       }
