@@ -56,6 +56,7 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .dot.visit { background: var(--spotta); }
 .dot.spotta { background: var(--spotta); }
 .dot.kobbi { background: var(--kobbi); }
+.dot.bidsvar { background: var(--kobbi); animation: blink 1s ease-in-out infinite; }
 .dot.progress { background: var(--progress); }
 .dot.emailed { background: var(--emailed); }
 .dot.done { background: var(--done); }
@@ -91,6 +92,9 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .marker.fura { background: var(--fura); width: 40px; height: 40px; font-size: 20px; border-width: 4px; }
 .marker.temp { background: #f59e0b; animation: pulse 1.2s infinite; }
 @keyframes pulse { 0%{transform:scale(1)} 50%{transform:scale(1.25)} 100%{transform:scale(1)} }
+/* Bíð eftir svari — brown but blinking to grab attention */
+.marker.bidsvar { background: var(--kobbi); animation: blink 1s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1; box-shadow:0 2px 6px rgba(0,0,0,.4)} 50%{opacity:.25; box-shadow:0 0 12px 4px var(--kobbi)} }
 
 /* ---------- Bottom sheet ---------- */
 #sheet {

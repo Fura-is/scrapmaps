@@ -137,6 +137,7 @@ function initApp() {
   const STATUS_LABEL = {
     spotta: "⚪ 1 · Spotta",
     kobbi: "🟤 2 · Senda á Kobba",
+    bidsvar: "🟤 ⏳ Bíð eftir svari (Kobbi)",
     progress: "🟣 3 · Spjalla",
     emailed: "🟡 4 · Senda tölvupóst",
     customer: "🟢 5 · Nýr kúnni",
@@ -940,7 +941,7 @@ function initApp() {
     }
     try {
       const place = findPlaceByCompany(v.company);
-      if (place && ["spotta", "kobbi", "progress", "visit"].includes(place.status)) {
+      if (place && ["spotta", "kobbi", "bidsvar", "progress", "visit"].includes(place.status)) {
         await updateDoc(doc(db, "places", place.id), {
           status: "emailed",
           updatedAt: serverTimestamp(),
