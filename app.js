@@ -332,9 +332,17 @@ function initApp() {
   function openChecklistFor(place) {
     const f = checklistForm;
     f.reset();
+    clPlaceId = place.id || null;
     if (place.name) f.company.value = place.name;
     if (place.address) f.address.value = shortAddress(place.address);
     if (place.notes) f.notes.value = place.notes;
+    if (typeof place.lat === "number" && typeof place.lng === "number") {
+      setClLocation(place.lat, place.lng, shortAddress(place.address) || "núverandi nál");
+    } else {
+      clearClLocation();
+    }
+    const legacyMap = { visit: "spotta", hringras: "samkeppni", malmar: "samkeppni" };
+    clStatusSel.value = legacyMap[place.status] || place.status || "spotta";
     suggestionsBox.classList.add("hidden");
     showView("checklist");
     setTimeout(() => f.contact.focus(), 100);
@@ -505,8 +513,10 @@ function initApp() {
     document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
     const target = document.getElementById(name + "View");
     if (target) target.classList.remove("hidden");
+    // the checklist form is reached via the (+) in Companies, so keep that tab lit
+    const activeTab = name === "checklist" ? "companies" : name;
     document.querySelectorAll(".tab").forEach((t) => {
-      t.classList.toggle("active", t.dataset.view === name);
+      t.classList.toggle("active", t.dataset.view === activeTab);
     });
     if (name === "map") setTimeout(() => map.invalidateSize(), 50);
   }
@@ -677,29 +687,116 @@ function initApp() {
     setTimeout(() => suggestionsBox.classList.add("hidden"), 180);
   });
 
+  // ----- Location capture for the new-company form -----
+  const clStatusSel = document.getElementById("cl_status");
+  const clLocStatus = document.getElementById("clLocStatus");
+  let clLat = null, clLng = null;
+  let clPlaceId = null; // set when the form was opened from an existing pin
+
+  function setClLocation(lat, lng, label) {
+    clLat = lat; clLng = lng;
+    clLocStatus.textContent = "📍 Staðsetning sett" + (label ? " · " + label : "");
+    clLocStatus.className = "loc-status ok";
+  }
+  function clearClLocation() {
+    clLat = clLng = null;
+    clLocStatus.textContent = "⚠ Engin staðsetning enn — skrifaðu heimilisfang eða notaðu GPS.";
+    clLocStatus.className = "loc-status";
+  }
+
+  document.getElementById("clFindAddr").addEventListener("click", () => {
+    const q = addressInput.value.trim() || companyInput.value.trim();
+    if (!q) { clLocStatus.textContent = "Skrifaðu heimilisfang fyrst."; clLocStatus.className = "loc-status err"; return; }
+    clLocStatus.textContent = "Leita…"; clLocStatus.className = "loc-status";
+    osmGeocoder.geocode(q, (results) => {
+      if (results && results.length) {
+        const r = results[0];
+        setClLocation(r.center.lat, r.center.lng, formatGeocode(r));
+        if (!addressInput.value.trim()) addressInput.value = shortAddress(formatGeocode(r));
+      } else {
+        clLocStatus.textContent = "Fann ekki heimilisfang — prófaðu GPS eða nákvæmara heimilisfang.";
+        clLocStatus.className = "loc-status err";
+      }
+    });
+  });
+
+  document.getElementById("clUseGps").addEventListener("click", () => {
+    if (!navigator.geolocation) { clLocStatus.textContent = "GPS ekki í boði á þessu tæki."; clLocStatus.className = "loc-status err"; return; }
+    clLocStatus.textContent = "Sæki GPS…"; clLocStatus.className = "loc-status";
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setClLocation(pos.coords.latitude, pos.coords.longitude, "GPS"),
+      (err) => { clLocStatus.textContent = "Náði ekki GPS: " + err.message; clLocStatus.className = "loc-status err"; },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  // Open the new-company form from the (+) in Companies
+  function openNewCompanyForm() {
+    checklistForm.reset();
+    clearClLocation();
+    clPlaceId = null;
+    clStatusSel.value = "spotta";
+    checklistMsg.classList.add("hidden");
+    showView("checklist");
+    setTimeout(() => companyInput.focus(), 50);
+  }
+  document.getElementById("addCompanyBtn").addEventListener("click", openNewCompanyForm);
+  document.getElementById("checklistBack").addEventListener("click", () => showView("companies"));
+
   checklistForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const f = e.target;
+    if (clLat == null || clLng == null) {
+      checklistMsg.textContent = "Þú verður að setja staðsetningu (heimilisfang eða GPS) áður en þú vistar.";
+      checklistMsg.className = "error";
+      checklistMsg.classList.remove("hidden");
+      return;
+    }
     const materials = [...f.querySelectorAll('input[name="materials"]:checked')].map((c) => c.value);
-    const data = {
-      company: f.company.value.trim(),
+    const company = f.company.value.trim();
+    const address = f.address.value.trim();
+    const notes = f.notes.value.trim();
+    const status = clStatusSel.value || "spotta";
+    const visitData = {
+      company,
       contact: f.contact.value.trim(),
       email: f.email.value.trim(),
-      address: f.address.value.trim(),
+      address,
       materials,
       hasForklift: f.hasForklift.checked,
-      notes: f.notes.value.trim(),
+      notes,
       visitDate: todayISO(),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
     try {
-      await addDoc(visitsCol, data);
-      checklistMsg.textContent = "✓ Vistað. Sjáðu undir Companies.";
+      if (clPlaceId) {
+        // form was opened from an existing pin → update it (no duplicate)
+        await updateDoc(doc(db, "places", clPlaceId), {
+          name: company || address || "Untitled",
+          address, status, notes,
+          lat: clLat, lng: clLng,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        // brand-new: one action → a map pin AND a company entry
+        await addDoc(placesCol, {
+          name: company || address || "Untitled",
+          address, status, notes,
+          lat: clLat, lng: clLng,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      await addDoc(visitsCol, visitData);
+      checklistMsg.textContent = "✓ Vistað — komið á kortið og í Companies.";
       checklistMsg.className = "success";
       checklistMsg.classList.remove("hidden");
       f.reset();
-      setTimeout(() => checklistMsg.classList.add("hidden"), 4500);
+      clearClLocation();
+      clPlaceId = null;
+      clStatusSel.value = "spotta";
+      setTimeout(() => { checklistMsg.classList.add("hidden"); showView("companies"); }, 1200);
     } catch (err) {
       checklistMsg.textContent = "Tókst ekki að vista: " + err.message;
       checklistMsg.className = "error";
@@ -709,6 +806,9 @@ function initApp() {
 
   document.getElementById("checklistReset").addEventListener("click", () => {
     checklistForm.reset();
+    clearClLocation();
+    clPlaceId = null;
+    clStatusSel.value = "spotta";
     checklistMsg.classList.add("hidden");
   });
 

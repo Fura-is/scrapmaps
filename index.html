@@ -24,7 +24,6 @@
   <!-- Top tab bar -->
   <nav id="tabs">
     <button class="tab active" data-view="map">🗺 Map</button>
-    <button class="tab" data-view="checklist">📋 Checklist</button>
     <button class="tab" data-view="companies">📊 Companies</button>
   </nav>
 
@@ -109,8 +108,11 @@
   <!-- ============================================================ -->
   <div id="checklistView" class="view hidden">
     <div class="panel">
-      <h2>Ný heimsókn</h2>
-      <p class="muted">Fylltu þetta út eftir hverja heimsókn. Vistast undir <b>Companies</b>.</p>
+      <div class="panel-head">
+        <button type="button" id="checklistBack" class="iconbtn-inline" title="Til baka">←</button>
+        <h2>Nýtt fyrirtæki</h2>
+      </div>
+      <p class="muted">Bættu við fyrirtæki — það fer bæði á <b>kortið</b> og í <b>Companies</b>.</p>
 
       <form id="checklistForm" autocomplete="off">
         <label>Fyrirtæki
@@ -122,6 +124,27 @@
 
         <label>Heimilisfang
           <input name="address" type="text" placeholder="Götuheiti, póstnúmer bær" autocomplete="off" />
+        </label>
+
+        <div class="loc-row">
+          <button type="button" id="clFindAddr" class="btn ghost small">🔍 Finna á korti</button>
+          <button type="button" id="clUseGps" class="btn ghost small">📍 Nota staðsetningu mína</button>
+        </div>
+        <p id="clLocStatus" class="loc-status">⚠ Engin staðsetning enn — skrifaðu heimilisfang eða notaðu GPS.</p>
+
+        <label>Þrep (staða)
+          <select id="cl_status">
+            <option value="spotta">⚪ 1 · Spotta</option>
+            <option value="kobbi">🟤 2 · Senda á Kobba</option>
+            <option value="bidsvar">🟤 ⏳ Bíð eftir svari (Kobbi)</option>
+            <option value="progress">🟣 3 · Spjalla</option>
+            <option value="emailed">🟡 4 · Senda tölvupóst</option>
+            <option value="bidpost">🟡 ⏳ Búið að senda (bíð eftir svari)</option>
+            <option value="customer">🟢 5 · Nýr kúnni</option>
+            <option value="done">🔴 Búið / ekki áhugi</option>
+            <option value="samkeppni">🟠 Samkeppni (Hring/Málma)</option>
+            <option value="fura">🔵 Fura (okkar)</option>
+          </select>
         </label>
 
         <label>Tengill
@@ -159,7 +182,7 @@
 
         <div class="form-actions">
           <button type="button" id="checklistReset" class="btn ghost">Hreinsa</button>
-          <button type="submit" id="checklistSave" class="btn primary">Vista heimsókn</button>
+          <button type="submit" id="checklistSave" class="btn primary">Vista fyrirtæki</button>
         </div>
         <p id="checklistMsg" class="muted hidden"></p>
       </form>
@@ -173,6 +196,7 @@
     <div class="panel">
       <div class="panel-head">
         <h2>Companies</h2>
+        <button id="addCompanyBtn" class="btn primary small">＋ Nýtt</button>
         <input id="companiesSearch" type="text" placeholder="Search…" />
       </div>
       <div class="sort-row">
@@ -180,7 +204,7 @@
         <button class="sort-btn" data-sort="distance">📍 Næst Fura</button>
         <button class="sort-btn" data-sort="alpha">🔤 A–Ö</button>
       </div>
-      <p id="companiesEmpty" class="muted hidden">No visits saved yet. Go to the Checklist tab.</p>
+      <p id="companiesEmpty" class="muted hidden">Engin fyrirtæki enn. Smelltu á ＋ Nýtt til að bæta við.</p>
       <div id="companiesList"></div>
     </div>
   </div>

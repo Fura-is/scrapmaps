@@ -320,6 +320,22 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
   border-radius: 10px;
   background: #fff;
 }
+#addCompanyBtn { flex: 0 0 auto; white-space: nowrap; }
+
+/* New-company form: back button, location controls, stage picker */
+.btn.small { flex: 0 0 auto; padding: 8px 12px; font-size: 13px; }
+.iconbtn-inline {
+  flex: 0 0 auto; border: none; background: #f1f5f9; color: var(--text);
+  width: 36px; height: 36px; border-radius: 9px; font-size: 20px; line-height: 1; cursor: pointer;
+}
+.loc-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 8px; }
+.loc-status { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+.loc-status.ok  { color: var(--customer); font-weight: 600; }
+.loc-status.err { color: var(--done); font-weight: 600; }
+#cl_status {
+  display: block; width: 100%; margin-top: 5px; padding: 11px 12px;
+  font-size: 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--text);
+}
 /* Autocomplete dropdown for the Fyrirtæki field */
 .autocomplete-wrap { position: relative; }
 .suggestions {
