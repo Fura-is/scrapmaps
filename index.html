@@ -25,6 +25,7 @@
   <nav id="tabs">
     <button class="tab active" data-view="map">🗺 Map</button>
     <button class="tab" data-view="companies">📊 Companies</button>
+    <button class="tab" data-view="diary">📔 Dagbók</button>
   </nav>
 
   <!-- ============================================================ -->
@@ -206,6 +207,31 @@
       </div>
       <p id="companiesEmpty" class="muted hidden">Engin fyrirtæki enn. Smelltu á ＋ Nýtt til að bæta við.</p>
       <div id="companiesList"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- PART 4 — Dagbók (notes + activity log) -->
+  <!-- ============================================================ -->
+  <div id="diaryView" class="view hidden">
+    <div class="panel">
+      <div class="diary-tabs">
+        <button class="diary-tab active" data-diary="notes">📝 Notes</button>
+        <button class="diary-tab" data-diary="log">📌 Punktar</button>
+      </div>
+
+      <div id="diaryNotes" class="diary-section">
+        <div class="note-input">
+          <textarea id="noteText" rows="3" placeholder="Skrifaðu það sem þér dettur í hug…"></textarea>
+          <button id="noteAdd" class="btn primary">Bæta við</button>
+        </div>
+        <div id="notesList"></div>
+      </div>
+
+      <div id="diaryLog" class="diary-section hidden">
+        <p class="muted">Sjálfvirk skrá yfir allt sem þú hefur gert í forritinu. Geymist í 40 daga, svo eyðist það.</p>
+        <div id="logList"></div>
+      </div>
     </div>
   </div>
 

@@ -448,3 +448,36 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 /* The PIN gate and setup banner must stay above the tab bar */
 #setupBanner, #pinGate { z-index: 2000; }
 #pinGate { z-index: 2100; }
+
+/* ---------- Dagbók (diary) ---------- */
+.diary-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.diary-tab {
+  flex: 1; padding: 10px 12px; border: 1px solid var(--line); background: #fff;
+  border-radius: 10px; font-size: 15px; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.diary-tab.active { background: var(--visit); color: #fff; border-color: var(--visit); }
+
+.note-input { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.note-input textarea {
+  width: 100%; padding: 11px 12px; font-size: 16px; font-family: inherit;
+  border: 1px solid var(--line); border-radius: 10px; resize: vertical; background: #fff;
+}
+.note-input .btn { align-self: flex-end; }
+
+.note-card {
+  position: relative; background: #fff; border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 40px 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
+}
+.note-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.note-body { font-size: 15px; white-space: pre-wrap; word-break: break-word; }
+.note-del {
+  position: absolute; top: 8px; right: 8px; width: 28px; height: 28px;
+  border: none; background: #f1f5f9; border-radius: 8px; font-size: 18px; line-height: 1; cursor: pointer; color: var(--muted);
+}
+
+.log-row {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 9px 4px; border-bottom: 1px solid var(--line);
+}
+.log-time { flex: 0 0 auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 108px; }
+.log-text { font-size: 14px; word-break: break-word; }

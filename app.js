@@ -410,9 +410,16 @@ function initApp() {
     };
     try {
       if (editId) {
+        const old = places.find((p) => p.id === editId);
         await updateDoc(doc(db, "places", editId), data);
+        if (old && old.status !== data.status) {
+          logActivity(`🎯 ${data.name}: staða ${STATUS_LABEL[old.status] || old.status} → ${STATUS_LABEL[data.status] || data.status}`);
+        } else {
+          logActivity(`✏️ Uppfærði nál: ${data.name}`);
+        }
       } else {
         await addDoc(placesCol, { ...data, createdAt: serverTimestamp() });
+        logActivity(`➕ Ný nál: ${data.name}`);
       }
       closeSheet();
     } catch (e) {
@@ -424,7 +431,9 @@ function initApp() {
     if (!editId) return;
     if (!confirm("Delete this place?")) return;
     try {
+      const old = places.find((p) => p.id === editId);
       await deleteDoc(doc(db, "places", editId));
+      logActivity(`🗑️ Eyddi nál: ${old ? old.name : ""}`);
       closeSheet();
     } catch (e) {
       alert("Could not delete: " + e.message);
@@ -799,6 +808,8 @@ function initApp() {
     const notes = f.notes.value.trim();
     const status = clStatusSel.value || "spotta";
     const wasEdit = !!clVisitId;
+    const oldPlace = clPlaceId ? places.find((p) => p.id === clPlaceId) : null;
+    const oldVisit = clVisitId ? visits.find((vv) => vv.id === clVisitId) : null;
     const visitData = {
       company,
       contact: f.contact.value.trim(),
@@ -832,6 +843,14 @@ function initApp() {
         await updateDoc(doc(db, "visits", clVisitId), visitData);
       } else {
         await addDoc(visitsCol, { ...visitData, visitDate: todayISO(), createdAt: serverTimestamp() });
+      }
+      if (wasEdit) {
+        const ch = [];
+        if (oldPlace && oldPlace.status !== status) ch.push(`staða ${STATUS_LABEL[oldPlace.status] || oldPlace.status} → ${STATUS_LABEL[status] || status}`);
+        if (oldVisit && (oldVisit.notes || "") !== notes) ch.push("athugasemdir");
+        logActivity(`✏️ ${company || "fyrirtæki"}${ch.length ? " — " + ch.join(", ") : " uppfært"}`);
+      } else {
+        logActivity(`➕ Nýtt fyrirtæki: ${company || address || "án nafns"}`);
       }
       checklistMsg.textContent = wasEdit ? "✓ Uppfært." : "✓ Vistað — komið á kortið og í Companies.";
       checklistMsg.className = "success";
@@ -1004,6 +1023,7 @@ function initApp() {
       if (!confirm("Delete this visit?")) return;
       try {
         await deleteDoc(doc(db, "visits", v.id));
+        logActivity(`🗑️ Eyddi fyrirtæki: ${v.company || ""}`);
       } catch (e) {
         alert("Could not delete: " + e.message);
       }
@@ -1094,6 +1114,7 @@ function initApp() {
       alert("Could not mark sent: " + e.message);
       return;
     }
+    logActivity(`✉️ Sendi tölvupóst: ${v.company || ""}`);
     try {
       const place = findPlaceByCompany(v.company);
       if (place && ["spotta", "kobbi", "bidsvar", "progress", "emailed", "visit"].includes(place.status)) {
@@ -1127,4 +1148,113 @@ function initApp() {
       console.error("Could not revert map pin status:", e);
     }
   }
+
+  // ============================================================
+  //  Dagbók — Notes + Activity log (Punktar)
+  // ============================================================
+  const notesCol = collection(db, "diary_notes");
+  const activityCol = collection(db, "activity");
+  let journalNotes = [];
+  let activityLog = [];
+  const RETENTION_MS = 40 * 24 * 60 * 60 * 1000; // 40 days
+
+  function logActivity(text) {
+    if (!text) return;
+    addDoc(activityCol, { text, t: Date.now(), ts: serverTimestamp() }).catch((e) => console.error("log:", e));
+  }
+
+  function fmtDateTime(ms) {
+    if (typeof ms !== "number") return "";
+    const d = new Date(ms);
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  onSnapshot(notesCol, (snap) => {
+    journalNotes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderNotes();
+  }, (e) => console.error("notes sync:", e));
+
+  onSnapshot(activityCol, (snap) => {
+    activityLog = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const cutoff = Date.now() - RETENTION_MS;
+    for (const a of activityLog) {
+      if (typeof a.t === "number" && a.t < cutoff) deleteDoc(doc(db, "activity", a.id)).catch(() => {});
+    }
+    renderLog();
+  }, (e) => console.error("activity sync:", e));
+
+  function renderNotes() {
+    const box = document.getElementById("notesList");
+    if (!box) return;
+    const rows = [...journalNotes].sort((a, b) => (b.t || 0) - (a.t || 0));
+    box.innerHTML = "";
+    if (!rows.length) { box.innerHTML = `<p class="muted">Engir minnispunktar enn.</p>`; return; }
+    for (const n of rows) {
+      const card = document.createElement("div");
+      card.className = "note-card";
+      const meta = document.createElement("div");
+      meta.className = "note-meta";
+      meta.textContent = fmtDateTime(n.t);
+      const body = document.createElement("div");
+      body.className = "note-body";
+      body.textContent = n.text || "";
+      const del = document.createElement("button");
+      del.className = "note-del";
+      del.textContent = "×";
+      del.title = "Eyða";
+      del.addEventListener("click", async () => {
+        if (!confirm("Eyða þessum punkti?")) return;
+        try { await deleteDoc(doc(db, "diary_notes", n.id)); } catch (e) { alert(e.message); }
+      });
+      card.appendChild(meta);
+      card.appendChild(body);
+      card.appendChild(del);
+      box.appendChild(card);
+    }
+  }
+
+  function renderLog() {
+    const box = document.getElementById("logList");
+    if (!box) return;
+    const cutoff = Date.now() - RETENTION_MS;
+    const rows = activityLog
+      .filter((a) => typeof a.t !== "number" || a.t >= cutoff)
+      .sort((a, b) => (b.t || 0) - (a.t || 0));
+    box.innerHTML = "";
+    if (!rows.length) { box.innerHTML = `<p class="muted">Ekkert skráð enn.</p>`; return; }
+    for (const a of rows) {
+      const row = document.createElement("div");
+      row.className = "log-row";
+      const t = document.createElement("span");
+      t.className = "log-time";
+      t.textContent = fmtDateTime(a.t);
+      const txt = document.createElement("span");
+      txt.className = "log-text";
+      txt.textContent = a.text || "";
+      row.appendChild(t);
+      row.appendChild(txt);
+      box.appendChild(row);
+    }
+  }
+
+  document.querySelectorAll(".diary-tab").forEach((t) => {
+    t.addEventListener("click", () => {
+      document.querySelectorAll(".diary-tab").forEach((x) => x.classList.toggle("active", x === t));
+      document.getElementById("diaryNotes").classList.toggle("hidden", t.dataset.diary !== "notes");
+      document.getElementById("diaryLog").classList.toggle("hidden", t.dataset.diary !== "log");
+    });
+  });
+
+  document.getElementById("noteAdd").addEventListener("click", async () => {
+    const el = document.getElementById("noteText");
+    const text = el.value.trim();
+    if (!text) return;
+    try {
+      await addDoc(notesCol, { text, t: Date.now(), ts: serverTimestamp() });
+      el.value = "";
+    } catch (e) {
+      alert("Tókst ekki að vista: " + e.message);
+    }
+  });
 }
