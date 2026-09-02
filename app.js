@@ -333,6 +333,8 @@ function initApp() {
     const f = checklistForm;
     f.reset();
     clPlaceId = place.id || null;
+    clVisitId = null;
+    if (checklistTitle) checklistTitle.textContent = "Nýtt fyrirtæki";
     if (place.name) f.company.value = place.name;
     if (place.address) f.address.value = shortAddress(place.address);
     if (place.notes) f.notes.value = place.notes;
@@ -692,6 +694,15 @@ function initApp() {
   const clLocStatus = document.getElementById("clLocStatus");
   let clLat = null, clLng = null;
   let clPlaceId = null; // set when the form was opened from an existing pin
+  let clVisitId = null; // set when editing an existing company (visit)
+  const checklistTitle = document.getElementById("checklistTitle");
+
+  function setChecklistMaterials(list) {
+    const chosen = new Set(list || []);
+    checklistForm.querySelectorAll('input[name="materials"]').forEach((c) => {
+      c.checked = chosen.has(c.value);
+    });
+  }
 
   function setClLocation(lat, lng, label) {
     clLat = lat; clLng = lng;
@@ -735,12 +746,42 @@ function initApp() {
     checklistForm.reset();
     clearClLocation();
     clPlaceId = null;
+    clVisitId = null;
     clStatusSel.value = "spotta";
+    if (checklistTitle) checklistTitle.textContent = "Nýtt fyrirtæki";
     checklistMsg.classList.add("hidden");
     showView("checklist");
     setTimeout(() => companyInput.focus(), 50);
   }
   document.getElementById("addCompanyBtn").addEventListener("click", openNewCompanyForm);
+
+  // Reopen an existing company to edit its info + change its stage
+  function openCompanyForEdit(v) {
+    const f = checklistForm;
+    f.reset();
+    clVisitId = v.id || null;
+    const place = findPlaceByCompany(v.company);
+    clPlaceId = place ? place.id : null;
+    f.company.value = v.company || "";
+    f.address.value = shortAddress(v.address || (place && place.address) || "");
+    f.contact.value = v.contact || "";
+    f.email.value = v.email || "";
+    f.notes.value = v.notes || (place && place.notes) || "";
+    setChecklistMaterials(v.materials);
+    f.hasForklift.checked = !!v.hasForklift;
+    const legacyMap = { visit: "spotta", hringras: "samkeppni", malmar: "samkeppni" };
+    if (place && typeof place.lat === "number" && typeof place.lng === "number") {
+      setClLocation(place.lat, place.lng, shortAddress(place.address) || "núverandi nál");
+      clStatusSel.value = legacyMap[place.status] || place.status || "spotta";
+    } else {
+      clearClLocation();
+      clStatusSel.value = "spotta";
+    }
+    if (checklistTitle) checklistTitle.textContent = "Breyta fyrirtæki";
+    suggestionsBox.classList.add("hidden");
+    checklistMsg.classList.add("hidden");
+    showView("checklist");
+  }
   document.getElementById("checklistBack").addEventListener("click", () => showView("companies"));
 
   checklistForm.addEventListener("submit", async (e) => {
@@ -757,6 +798,7 @@ function initApp() {
     const address = f.address.value.trim();
     const notes = f.notes.value.trim();
     const status = clStatusSel.value || "spotta";
+    const wasEdit = !!clVisitId;
     const visitData = {
       company,
       contact: f.contact.value.trim(),
@@ -765,13 +807,11 @@ function initApp() {
       materials,
       hasForklift: f.hasForklift.checked,
       notes,
-      visitDate: todayISO(),
-      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
     try {
       if (clPlaceId) {
-        // form was opened from an existing pin → update it (no duplicate)
+        // update the linked map pin (no duplicate)
         await updateDoc(doc(db, "places", clPlaceId), {
           name: company || address || "Untitled",
           address, status, notes,
@@ -779,7 +819,7 @@ function initApp() {
           updatedAt: serverTimestamp(),
         });
       } else {
-        // brand-new: one action → a map pin AND a company entry
+        // brand-new: create the map pin
         await addDoc(placesCol, {
           name: company || address || "Untitled",
           address, status, notes,
@@ -788,14 +828,20 @@ function initApp() {
           updatedAt: serverTimestamp(),
         });
       }
-      await addDoc(visitsCol, visitData);
-      checklistMsg.textContent = "✓ Vistað — komið á kortið og í Companies.";
+      if (clVisitId) {
+        await updateDoc(doc(db, "visits", clVisitId), visitData);
+      } else {
+        await addDoc(visitsCol, { ...visitData, visitDate: todayISO(), createdAt: serverTimestamp() });
+      }
+      checklistMsg.textContent = wasEdit ? "✓ Uppfært." : "✓ Vistað — komið á kortið og í Companies.";
       checklistMsg.className = "success";
       checklistMsg.classList.remove("hidden");
       f.reset();
       clearClLocation();
       clPlaceId = null;
+      clVisitId = null;
       clStatusSel.value = "spotta";
+      if (checklistTitle) checklistTitle.textContent = "Nýtt fyrirtæki";
       setTimeout(() => { checklistMsg.classList.add("hidden"); showView("companies"); }, 1200);
     } catch (err) {
       checklistMsg.textContent = "Tókst ekki að vista: " + err.message;
@@ -808,7 +854,9 @@ function initApp() {
     checklistForm.reset();
     clearClLocation();
     clPlaceId = null;
+    clVisitId = null;
     clStatusSel.value = "spotta";
+    if (checklistTitle) checklistTitle.textContent = "Nýtt fyrirtæki";
     checklistMsg.classList.add("hidden");
   });
 
@@ -917,6 +965,12 @@ function initApp() {
 
     const actions = document.createElement("div");
     actions.className = "actions";
+
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn primary";
+    editBtn.textContent = "✏️ Breyta / staða";
+    editBtn.addEventListener("click", () => openCompanyForEdit(v));
+    actions.appendChild(editBtn);
 
     const composeBtn = document.createElement("button");
     composeBtn.className = "btn ghost";
