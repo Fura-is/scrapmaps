@@ -1227,7 +1227,10 @@ function initApp() {
             map.flyTo([pl.lat, pl.lng], 16);
             setTimeout(() => markers.get(pl.id)?.openPopup(), 400);
           } else {
-            alert("Fann ekki fyrirtæki á korti: " + n.company);
+            // no map pin — open it in the Companies list instead
+            showView("companies");
+            const cs = document.getElementById("companiesSearch");
+            if (cs) { cs.value = n.company; renderCompanies(); }
           }
         });
         foot.appendChild(chip);
@@ -1267,7 +1270,11 @@ function initApp() {
   function fillNoteCompanyList() {
     const dl = document.getElementById("noteCompanyList");
     if (!dl) return;
-    const names = [...new Set(places.map((p) => p.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, "is"));
+    // Suggest every company we've already registered — map pins AND the Companies list
+    const names = [...new Set([
+      ...places.map((p) => p.name),
+      ...visits.map((v) => v.company),
+    ].filter(Boolean))].sort((a, b) => a.localeCompare(b, "is"));
     dl.innerHTML = names.map((n) => `<option value="${n.replace(/"/g, "&quot;")}"></option>`).join("");
   }
   noteCompanyEl.addEventListener("focus", fillNoteCompanyList);
