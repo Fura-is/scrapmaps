@@ -461,6 +461,24 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .diary-block:last-child { margin-bottom: 0; }
 .diary-h { font-size: 18px; margin: 0 0 10px; }
 
+/* Notes left, Punktar right — stacks on narrow screens */
+.diary-grid { display: flex; gap: 24px; align-items: flex-start; }
+.diary-grid .diary-block { flex: 1 1 0; min-width: 0; margin-bottom: 0; }
+@media (max-width: 680px) {
+  .diary-grid { flex-direction: column; gap: 20px; }
+  .diary-grid .diary-block { width: 100%; }
+}
+
+#noteCompany {
+  width: 100%; padding: 10px 12px; font-size: 15px; font-family: inherit;
+  border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--text);
+}
+.note-foot { text-align: right; margin-top: 8px; }
+.note-company {
+  display: inline-block; border: 1px solid #c7d2fe; background: #eef2ff; color: var(--visit);
+  border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+
 .note-input { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .note-input textarea {
   width: 100%; padding: 11px 12px; font-size: 16px; font-family: inherit;

@@ -215,10 +215,13 @@
   <!-- ============================================================ -->
   <div id="diaryView" class="view hidden">
     <div class="panel">
+      <div class="diary-grid">
       <section class="diary-block">
         <h2 class="diary-h">📝 Notes</h2>
         <div class="note-input">
           <textarea id="noteText" rows="2" placeholder="Skrifaðu og ýttu á Enter…"></textarea>
+          <input id="noteCompany" list="noteCompanyList" placeholder="🏢 Tengja við fyrirtæki (valfrjálst)…" autocomplete="off" />
+          <datalist id="noteCompanyList"></datalist>
           <button id="noteAdd" class="btn primary">Bæta við</button>
         </div>
         <div id="notesList"></div>
@@ -229,6 +232,7 @@
         <p class="muted">Sjálfvirk skrá yfir allt sem þú gerir í forritinu. Geymist í 40 daga, svo eyðist það.</p>
         <div id="logList"></div>
       </section>
+      </div>
     </div>
   </div>
 

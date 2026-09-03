@@ -1213,6 +1213,26 @@ function initApp() {
       card.appendChild(meta);
       card.appendChild(body);
       card.appendChild(del);
+      if (n.company) {
+        const foot = document.createElement("div");
+        foot.className = "note-foot";
+        const chip = document.createElement("button");
+        chip.className = "note-company";
+        chip.textContent = "🏢 " + n.company;
+        chip.title = "Fara á fyrirtæki á korti";
+        chip.addEventListener("click", () => {
+          const pl = findPlaceByCompany(n.company);
+          if (pl && typeof pl.lat === "number" && typeof pl.lng === "number") {
+            showView("map");
+            map.flyTo([pl.lat, pl.lng], 16);
+            setTimeout(() => markers.get(pl.id)?.openPopup(), 400);
+          } else {
+            alert("Fann ekki fyrirtæki á korti: " + n.company);
+          }
+        });
+        foot.appendChild(chip);
+        card.appendChild(foot);
+      }
       box.appendChild(card);
     }
   }
@@ -1242,12 +1262,24 @@ function initApp() {
   }
 
   const noteTextEl = document.getElementById("noteText");
+  const noteCompanyEl = document.getElementById("noteCompany");
+
+  function fillNoteCompanyList() {
+    const dl = document.getElementById("noteCompanyList");
+    if (!dl) return;
+    const names = [...new Set(places.map((p) => p.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, "is"));
+    dl.innerHTML = names.map((n) => `<option value="${n.replace(/"/g, "&quot;")}"></option>`).join("");
+  }
+  noteCompanyEl.addEventListener("focus", fillNoteCompanyList);
+
   async function addNote() {
     const text = noteTextEl.value.trim();
     if (!text) return;
+    const company = noteCompanyEl.value.trim();
     try {
-      await addDoc(notesCol, { text, t: Date.now(), ts: serverTimestamp() });
+      await addDoc(notesCol, { text, company, t: Date.now(), ts: serverTimestamp() });
       noteTextEl.value = "";
+      noteCompanyEl.value = "";
     } catch (e) {
       alert("Tókst ekki að vista: " + e.message);
     }
