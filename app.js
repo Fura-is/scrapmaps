@@ -415,11 +415,11 @@ function initApp() {
         if (old && old.status !== data.status) {
           logActivity(`🎯 ${data.name}: staða ${STATUS_LABEL[old.status] || old.status} → ${STATUS_LABEL[data.status] || data.status}`);
         } else {
-          logActivity(`✏️ Uppfærði nál: ${data.name}`);
+          logActivity(`✏️ Uppfærði nál: ${data.name} (staða: ${STATUS_LABEL[data.status] || data.status})`);
         }
       } else {
         await addDoc(placesCol, { ...data, createdAt: serverTimestamp() });
-        logActivity(`➕ Ný nál: ${data.name}`);
+        logActivity(`➕ Ný nál: ${data.name} — ${STATUS_LABEL[data.status] || data.status}`);
       }
       closeSheet();
     } catch (e) {
@@ -844,13 +844,16 @@ function initApp() {
       } else {
         await addDoc(visitsCol, { ...visitData, visitDate: todayISO(), createdAt: serverTimestamp() });
       }
+      const stageLabel = STATUS_LABEL[status] || status;
       if (wasEdit) {
         const ch = [];
-        if (oldPlace && oldPlace.status !== status) ch.push(`staða ${STATUS_LABEL[oldPlace.status] || oldPlace.status} → ${STATUS_LABEL[status] || status}`);
+        if (oldPlace && oldPlace.status !== status) ch.push(`staða ${STATUS_LABEL[oldPlace.status] || oldPlace.status} → ${stageLabel}`);
         if (oldVisit && (oldVisit.notes || "") !== notes) ch.push("athugasemdir");
-        logActivity(`✏️ ${company || "fyrirtæki"}${ch.length ? " — " + ch.join(", ") : " uppfært"}`);
+        if (oldVisit && (oldVisit.email || "") !== visitData.email) ch.push("email");
+        if (oldVisit && (oldVisit.contact || "") !== visitData.contact) ch.push("tengilið");
+        logActivity(`✏️ ${company || "fyrirtæki"} — ${ch.length ? ch.join(", ") : "uppfært"} (staða: ${stageLabel})`);
       } else {
-        logActivity(`➕ Nýtt fyrirtæki: ${company || address || "án nafns"}`);
+        logActivity(`➕ Nýtt fyrirtæki: ${company || address || "án nafns"} — ${stageLabel}`);
       }
       checklistMsg.textContent = wasEdit ? "✓ Uppfært." : "✓ Vistað — komið á kortið og í Companies.";
       checklistMsg.className = "success";
@@ -1114,7 +1117,7 @@ function initApp() {
       alert("Could not mark sent: " + e.message);
       return;
     }
-    logActivity(`✉️ Sendi tölvupóst: ${v.company || ""}`);
+    logActivity(`✉️ Sendi tölvupóst: ${v.company || ""} (→ ${STATUS_LABEL["bidpost"]})`);
     try {
       const place = findPlaceByCompany(v.company);
       if (place && ["spotta", "kobbi", "bidsvar", "progress", "emailed", "visit"].includes(place.status)) {
@@ -1238,23 +1241,23 @@ function initApp() {
     }
   }
 
-  document.querySelectorAll(".diary-tab").forEach((t) => {
-    t.addEventListener("click", () => {
-      document.querySelectorAll(".diary-tab").forEach((x) => x.classList.toggle("active", x === t));
-      document.getElementById("diaryNotes").classList.toggle("hidden", t.dataset.diary !== "notes");
-      document.getElementById("diaryLog").classList.toggle("hidden", t.dataset.diary !== "log");
-    });
-  });
-
-  document.getElementById("noteAdd").addEventListener("click", async () => {
-    const el = document.getElementById("noteText");
-    const text = el.value.trim();
+  const noteTextEl = document.getElementById("noteText");
+  async function addNote() {
+    const text = noteTextEl.value.trim();
     if (!text) return;
     try {
       await addDoc(notesCol, { text, t: Date.now(), ts: serverTimestamp() });
-      el.value = "";
+      noteTextEl.value = "";
     } catch (e) {
       alert("Tókst ekki að vista: " + e.message);
+    }
+  }
+  document.getElementById("noteAdd").addEventListener("click", addNote);
+  // Enter = new note, Shift+Enter = line break
+  noteTextEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      addNote();
     }
   });
 }

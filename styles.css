@@ -457,6 +457,10 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 }
 .diary-tab.active { background: var(--visit); color: #fff; border-color: var(--visit); }
 
+.diary-block { margin-bottom: 26px; }
+.diary-block:last-child { margin-bottom: 0; }
+.diary-h { font-size: 18px; margin: 0 0 10px; }
+
 .note-input { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .note-input textarea {
   width: 100%; padding: 11px 12px; font-size: 16px; font-family: inherit;
