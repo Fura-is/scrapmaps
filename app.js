@@ -137,7 +137,6 @@ function initApp() {
   const STATUS_LABEL = {
     spotta: "⚪ 1 · Spotta",
     kobbi: "🟤 2 · Senda á Kobba",
-    bidsvar: "🟤 ⏳ Bíð eftir svari (Kobbi)",
     progress: "🟣 3 · Spjalla",
     emailed: "🟡 4 · Senda tölvupóst",
     bidpost: "🟡 ⏳ Búið að senda (bíð eftir svari)",
@@ -1120,7 +1119,7 @@ function initApp() {
     logActivity(`✉️ Sendi tölvupóst: ${v.company || ""} (→ ${STATUS_LABEL["bidpost"]})`);
     try {
       const place = findPlaceByCompany(v.company);
-      if (place && ["spotta", "kobbi", "bidsvar", "progress", "emailed", "visit"].includes(place.status)) {
+      if (place && ["spotta", "kobbi", "progress", "emailed", "visit"].includes(place.status)) {
         await updateDoc(doc(db, "places", place.id), {
           status: "bidpost",
           updatedAt: serverTimestamp(),
