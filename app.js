@@ -541,6 +541,16 @@ function initApp() {
     return places.map((p) => ({ ...p, company: p.name }));
   }
 
+  // CSS colour variable for a status — matches the map pin colour
+  function statusColorVar(s) {
+    const m = {
+      spotta: "--spotta", visit: "--spotta", kobbi: "--kobbi", progress: "--progress",
+      emailed: "--emailed", bidpost: "--emailed", customer: "--customer", done: "--done",
+      samkeppni: "--samkeppni", hringras: "--samkeppni", malmar: "--samkeppni", fura: "--fura",
+    };
+    return m[s] || "--spotta";
+  }
+
   // Fura HQ for "nearest" sort. Falls back to hardcoded Hringhella 3 coords
   // if the Fura map pin is missing.
   function getFuraCoords() {
@@ -909,7 +919,11 @@ function initApp() {
     card.className = "company-card";
 
     const h3 = document.createElement("h3");
-    h3.textContent = v.company || "(no name)";
+    const dot = document.createElement("span");
+    dot.className = "company-dot";
+    dot.style.background = `var(${statusColorVar(v.status)})`;
+    h3.appendChild(dot);
+    h3.appendChild(document.createTextNode(v.company || "(no name)"));
     card.appendChild(h3);
 
     const stage = document.createElement("div");
