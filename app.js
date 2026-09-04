@@ -231,6 +231,7 @@ function initApp() {
       places = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       renderMarkers();
       renderList();
+      if (typeof renderCompanies === "function") renderCompanies();
       statusbar.textContent = `${places.length} place${places.length === 1 ? "" : "s"} · synced`;
     },
     (err) => {
@@ -329,24 +330,9 @@ function initApp() {
 
   // Pre-fill the checklist from a map pin, then switch to the Checklist tab.
   function openChecklistFor(place) {
-    const f = checklistForm;
-    f.reset();
-    clPlaceId = place.id || null;
-    clVisitId = null;
-    if (checklistTitle) checklistTitle.textContent = "Nýtt fyrirtæki";
-    if (place.name) f.company.value = place.name;
-    if (place.address) f.address.value = shortAddress(place.address);
-    if (place.notes) f.notes.value = place.notes;
-    if (typeof place.lat === "number" && typeof place.lng === "number") {
-      setClLocation(place.lat, place.lng, shortAddress(place.address) || "núverandi nál");
-    } else {
-      clearClLocation();
-    }
-    const legacyMap = { visit: "spotta", hringras: "samkeppni", malmar: "samkeppni" };
-    clStatusSel.value = legacyMap[place.status] || place.status || "spotta";
-    suggestionsBox.classList.add("hidden");
-    showView("checklist");
-    setTimeout(() => f.contact.focus(), 100);
+    // company = pin, so editing from the map opens the same unified form
+    openCompanyForEdit({ ...place, company: place.name });
+    setTimeout(() => checklistForm.contact.focus(), 100);
   }
 
   // ----- Bottom sheet -----
@@ -548,6 +534,12 @@ function initApp() {
   const visitsCol = collection(db, "visits");
   let visits = [];
   let companiesSort = "newest";
+  let companiesFilter = "all";
+
+  // Companies is a list-view of the SAME map pins (single source of truth).
+  function companyRows() {
+    return places.map((p) => ({ ...p, company: p.name }));
+  }
 
   // Fura HQ for "nearest" sort. Falls back to hardcoded Hringhella 3 coords
   // if the Fura map pin is missing.
@@ -767,24 +759,22 @@ function initApp() {
   function openCompanyForEdit(v) {
     const f = checklistForm;
     f.reset();
-    clVisitId = v.id || null;
-    const place = findPlaceByCompany(v.company);
-    clPlaceId = place ? place.id : null;
-    f.company.value = v.company || "";
-    f.address.value = shortAddress(v.address || (place && place.address) || "");
+    clPlaceId = v.id || null;
+    clVisitId = null;
+    f.company.value = v.company || v.name || "";
+    f.address.value = shortAddress(v.address || "");
     f.contact.value = v.contact || "";
     f.email.value = v.email || "";
-    f.notes.value = v.notes || (place && place.notes) || "";
+    f.notes.value = v.notes || "";
     setChecklistMaterials(v.materials);
     f.hasForklift.checked = !!v.hasForklift;
     const legacyMap = { visit: "spotta", hringras: "samkeppni", malmar: "samkeppni" };
-    if (place && typeof place.lat === "number" && typeof place.lng === "number") {
-      setClLocation(place.lat, place.lng, shortAddress(place.address) || "núverandi nál");
-      clStatusSel.value = legacyMap[place.status] || place.status || "spotta";
+    if (typeof v.lat === "number" && typeof v.lng === "number") {
+      setClLocation(v.lat, v.lng, shortAddress(v.address) || "núverandi nál");
     } else {
       clearClLocation();
-      clStatusSel.value = "spotta";
     }
+    clStatusSel.value = legacyMap[v.status] || v.status || "spotta";
     if (checklistTitle) checklistTitle.textContent = "Breyta fyrirtæki";
     suggestionsBox.classList.add("hidden");
     checklistMsg.classList.add("hidden");
@@ -805,51 +795,32 @@ function initApp() {
     const company = f.company.value.trim();
     const address = f.address.value.trim();
     const notes = f.notes.value.trim();
+    const email = f.email.value.trim();
+    const contact = f.contact.value.trim();
     const status = clStatusSel.value || "spotta";
-    const wasEdit = !!clVisitId;
+    const wasEdit = !!clPlaceId;
     const oldPlace = clPlaceId ? places.find((p) => p.id === clPlaceId) : null;
-    const oldVisit = clVisitId ? visits.find((vv) => vv.id === clVisitId) : null;
-    const visitData = {
-      company,
-      contact: f.contact.value.trim(),
-      email: f.email.value.trim(),
-      address,
-      materials,
+    // one entity: the map pin holds everything (company = pin)
+    const placeData = {
+      name: company || address || "Untitled",
+      address, status, notes, email, contact, materials,
       hasForklift: f.hasForklift.checked,
-      notes,
+      lat: clLat, lng: clLng,
       updatedAt: serverTimestamp(),
     };
     try {
       if (clPlaceId) {
-        // update the linked map pin (no duplicate)
-        await updateDoc(doc(db, "places", clPlaceId), {
-          name: company || address || "Untitled",
-          address, status, notes,
-          lat: clLat, lng: clLng,
-          updatedAt: serverTimestamp(),
-        });
+        await updateDoc(doc(db, "places", clPlaceId), placeData);
       } else {
-        // brand-new: create the map pin
-        await addDoc(placesCol, {
-          name: company || address || "Untitled",
-          address, status, notes,
-          lat: clLat, lng: clLng,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      }
-      if (clVisitId) {
-        await updateDoc(doc(db, "visits", clVisitId), visitData);
-      } else {
-        await addDoc(visitsCol, { ...visitData, visitDate: todayISO(), createdAt: serverTimestamp() });
+        await addDoc(placesCol, { ...placeData, visitDate: todayISO(), createdAt: serverTimestamp() });
       }
       const stageLabel = STATUS_LABEL[status] || status;
       if (wasEdit) {
         const ch = [];
         if (oldPlace && oldPlace.status !== status) ch.push(`staða ${STATUS_LABEL[oldPlace.status] || oldPlace.status} → ${stageLabel}`);
-        if (oldVisit && (oldVisit.notes || "") !== notes) ch.push("athugasemdir");
-        if (oldVisit && (oldVisit.email || "") !== visitData.email) ch.push("email");
-        if (oldVisit && (oldVisit.contact || "") !== visitData.contact) ch.push("tengilið");
+        if (oldPlace && (oldPlace.notes || "") !== notes) ch.push("athugasemdir");
+        if (oldPlace && (oldPlace.email || "") !== email) ch.push("email");
+        if (oldPlace && (oldPlace.contact || "") !== contact) ch.push("tengilið");
         logActivity(`✏️ ${company || "fyrirtæki"} — ${ch.length ? ch.join(", ") : "uppfært"} (staða: ${stageLabel})`);
       } else {
         logActivity(`➕ Nýtt fyrirtæki: ${company || address || "án nafns"} — ${stageLabel}`);
@@ -894,10 +865,25 @@ function initApp() {
       renderCompanies();
     });
   });
+  document.querySelectorAll(".cfilter").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".cfilter").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      companiesFilter = btn.dataset.cfilter;
+      renderCompanies();
+    });
+  });
 
   function renderCompanies() {
     const q = companiesSearch.value.trim().toLowerCase();
-    const filtered = visits.filter((v) => {
+    const filtered = companyRows().filter((v) => {
+      if (companiesFilter !== "all") {
+        if (companiesFilter === "samkeppni") {
+          if (!["samkeppni", "hringras", "malmar"].includes(v.status)) return false;
+        } else if (companiesFilter === "spotta") {
+          if (!["spotta", "visit"].includes(v.status)) return false;
+        } else if (v.status !== companiesFilter) return false;
+      }
       if (!q) return true;
       const hay = [v.company, v.contact, v.email, v.address, v.priorities, v.notes, (v.materials || []).join(" ")]
         .filter(Boolean)
@@ -925,6 +911,11 @@ function initApp() {
     const h3 = document.createElement("h3");
     h3.textContent = v.company || "(no name)";
     card.appendChild(h3);
+
+    const stage = document.createElement("div");
+    stage.className = "company-stage";
+    stage.textContent = STATUS_LABEL[v.status] || v.status || "";
+    if (stage.textContent) card.appendChild(stage);
 
     const meta = document.createElement("div");
     meta.className = "meta";
@@ -1022,9 +1013,9 @@ function initApp() {
     delBtn.className = "btn ghost";
     delBtn.textContent = "Delete";
     delBtn.addEventListener("click", async () => {
-      if (!confirm("Delete this visit?")) return;
+      if (!confirm("Eyða þessu fyrirtæki? Það hverfur líka af kortinu.")) return;
       try {
-        await deleteDoc(doc(db, "visits", v.id));
+        await deleteDoc(doc(db, "places", v.id));
         logActivity(`🗑️ Eyddi fyrirtæki: ${v.company || ""}`);
       } catch (e) {
         alert("Could not delete: " + e.message);
@@ -1110,44 +1101,32 @@ function initApp() {
 
   // ----- Mark / unmark email as sent (this is what flips the map pin) -----
   async function markAsSent(v) {
+    const newStatus = ["spotta", "kobbi", "progress", "emailed", "visit"].includes(v.status) ? "bidpost" : v.status;
     try {
-      await updateDoc(doc(db, "visits", v.id), { emailSentAt: serverTimestamp() });
+      await updateDoc(doc(db, "places", v.id), {
+        emailSentAt: serverTimestamp(),
+        status: newStatus,
+        updatedAt: serverTimestamp(),
+      });
     } catch (e) {
       alert("Could not mark sent: " + e.message);
       return;
     }
     logActivity(`✉️ Sendi tölvupóst: ${v.company || ""} (→ ${STATUS_LABEL["bidpost"]})`);
-    try {
-      const place = findPlaceByCompany(v.company);
-      if (place && ["spotta", "kobbi", "progress", "emailed", "visit"].includes(place.status)) {
-        await updateDoc(doc(db, "places", place.id), {
-          status: "bidpost",
-          updatedAt: serverTimestamp(),
-        });
-      }
-    } catch (e) {
-      console.error("Could not update map pin status:", e);
-    }
   }
 
   async function unmarkSent(v) {
     if (!confirm("Afmerkja sem sendan?")) return;
+    const revert = (v.status === "bidpost" || v.status === "emailed") ? "progress" : v.status;
     try {
-      await updateDoc(doc(db, "visits", v.id), { emailSentAt: deleteField() });
+      await updateDoc(doc(db, "places", v.id), {
+        emailSentAt: deleteField(),
+        status: revert,
+        updatedAt: serverTimestamp(),
+      });
     } catch (e) {
       alert("Could not undo: " + e.message);
       return;
-    }
-    try {
-      const place = findPlaceByCompany(v.company);
-      if (place && place.status === "emailed") {
-        await updateDoc(doc(db, "places", place.id), {
-          status: "progress",
-          updatedAt: serverTimestamp(),
-        });
-      }
-    } catch (e) {
-      console.error("Could not revert map pin status:", e);
     }
   }
 
@@ -1270,10 +1249,7 @@ function initApp() {
     const dl = document.getElementById("noteCompanyList");
     if (!dl) return;
     // Suggest every company we've already registered — map pins AND the Companies list
-    const names = [...new Set([
-      ...places.map((p) => p.name),
-      ...visits.map((v) => v.company),
-    ].filter(Boolean))].sort((a, b) => a.localeCompare(b, "is"));
+    const names = [...new Set(places.map((p) => p.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, "is"));
     dl.innerHTML = names.map((n) => `<option value="${n.replace(/"/g, "&quot;")}"></option>`).join("");
   }
   noteCompanyEl.addEventListener("focus", fillNoteCompanyList);

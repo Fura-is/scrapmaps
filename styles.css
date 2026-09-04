@@ -380,6 +380,14 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
   border-color: var(--visit);
 }
 
+/* Companies stage filter */
+.companies-filter { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.cfilter {
+  background: #fff; border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 11px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text); white-space: nowrap;
+}
+.cfilter.active { background: var(--visit); color: #fff; border-color: var(--visit); }
+
 .company-card {
   background: #fff;
   border: 1px solid var(--line);
@@ -388,7 +396,8 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
   margin-bottom: 12px;
   box-shadow: 0 2px 6px rgba(0,0,0,.04);
 }
-.company-card h3 { margin: 0 0 4px; font-size: 17px; }
+.company-card h3 { margin: 0 0 2px; font-size: 17px; }
+.company-card .company-stage { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
 .company-card .meta { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .company-card .row-line {
   display: flex; flex-wrap: wrap; gap: 4px 14px;
