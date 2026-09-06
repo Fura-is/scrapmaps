@@ -398,13 +398,14 @@ function initApp() {
         const old = places.find((p) => p.id === editId);
         await updateDoc(doc(db, "places", editId), data);
         if (old && old.status !== data.status) {
-          logActivity(`🎯 ${data.name}: staða ${STATUS_LABEL[old.status] || old.status} → ${STATUS_LABEL[data.status] || data.status}`);
+          const gotCustomer = data.status === "customer" && old.status !== "customer";
+          logActivity(`🎯 ${data.name}: staða ${STATUS_LABEL[old.status] || old.status} → ${STATUS_LABEL[data.status] || data.status}`, gotCustomer ? "new_customer" : null);
         } else {
           logActivity(`✏️ Uppfærði nál: ${data.name} (staða: ${STATUS_LABEL[data.status] || data.status})`);
         }
       } else {
         await addDoc(placesCol, { ...data, createdAt: serverTimestamp() });
-        logActivity(`➕ Ný nál: ${data.name} — ${STATUS_LABEL[data.status] || data.status}`);
+        logActivity(`➕ Ný nál: ${data.name} — ${STATUS_LABEL[data.status] || data.status}`, data.status === "customer" ? "new_customer" : null);
       }
       closeSheet();
     } catch (e) {
@@ -815,15 +816,16 @@ function initApp() {
         await addDoc(placesCol, { ...placeData, visitDate: todayISO(), createdAt: serverTimestamp() });
       }
       const stageLabel = STATUS_LABEL[status] || status;
+      const gotCustomer = status === "customer" && (!wasEdit || (oldPlace && oldPlace.status !== "customer"));
       if (wasEdit) {
         const ch = [];
         if (oldPlace && oldPlace.status !== status) ch.push(`staða ${STATUS_LABEL[oldPlace.status] || oldPlace.status} → ${stageLabel}`);
         if (oldPlace && (oldPlace.notes || "") !== notes) ch.push("athugasemdir");
         if (oldPlace && (oldPlace.email || "") !== email) ch.push("email");
         if (oldPlace && (oldPlace.contact || "") !== contact) ch.push("tengilið");
-        logActivity(`✏️ ${company || "fyrirtæki"} — ${ch.length ? ch.join(", ") : "uppfært"} (staða: ${stageLabel})`);
+        logActivity(`✏️ ${company || "fyrirtæki"} — ${ch.length ? ch.join(", ") : "uppfært"} (staða: ${stageLabel})`, gotCustomer ? "new_customer" : null);
       } else {
-        logActivity(`➕ Nýtt fyrirtæki: ${company || address || "án nafns"} — ${stageLabel}`);
+        logActivity(`➕ Nýtt fyrirtæki: ${company || address || "án nafns"} — ${stageLabel}`, gotCustomer ? "new_customer" : null);
       }
       checklistMsg.textContent = wasEdit ? "✓ Uppfært." : "✓ Vistað — komið á kortið og í Fyrirtæki.";
       checklistMsg.className = "success";
@@ -1139,9 +1141,35 @@ function initApp() {
   let activityLog = [];
   const RETENTION_MS = 40 * 24 * 60 * 60 * 1000; // 40 days
 
-  function logActivity(text) {
+  function logActivity(text, type) {
     if (!text) return;
-    addDoc(activityCol, { text, t: Date.now(), ts: serverTimestamp() }).catch((e) => console.error("log:", e));
+    const entry = { text, t: Date.now(), ts: serverTimestamp() };
+    if (type) entry.type = type;
+    addDoc(activityCol, entry).catch((e) => console.error("log:", e));
+  }
+
+  const MONTHS_IS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
+
+  // Did this activity entry represent landing a NEW customer?
+  function isNewCustomerLog(a) {
+    if (a.type === "new_customer") return true;
+    const t = a.text || "";
+    if (!t.includes("Nýr kúnni")) return false;
+    if (t.startsWith("➕")) return true;              // created as customer
+    if (t.includes("→")) return (t.split("→")[1] || "").split("(")[0].includes("Nýr kúnni"); // moved TO customer
+    return false;
+  }
+
+  function renderCustomerCounter() {
+    const el = document.getElementById("customerCounter");
+    if (!el) return;
+    const now = new Date();
+    const count = activityLog.filter((a) => {
+      if (typeof a.t !== "number") return false;
+      const d = new Date(a.t);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && isNewCustomerLog(a);
+    }).length;
+    el.textContent = `🟢 Nýir viðskiptavinir í ${MONTHS_IS[now.getMonth()]}: ${count}`;
   }
 
   function fmtDateTime(ms) {
@@ -1163,6 +1191,7 @@ function initApp() {
       if (typeof a.t === "number" && a.t < cutoff) deleteDoc(doc(db, "activity", a.id)).catch(() => {});
     }
     renderLog();
+    renderCustomerCounter();
   }, (e) => console.error("activity sync:", e));
 
   function enterNoteEdit(card, n) {

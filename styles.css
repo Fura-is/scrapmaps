@@ -464,6 +464,10 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 }
 .diary-tab.active { background: var(--visit); color: #fff; border-color: var(--visit); }
 
+.customer-counter {
+  text-align: right; color: var(--customer); font-weight: 800; font-size: 15px; margin-bottom: 12px;
+}
+.customer-counter:empty { display: none; }
 .diary-block { margin-bottom: 26px; }
 .diary-block:last-child { margin-bottom: 0; }
 .diary-h { font-size: 18px; margin: 0 0 10px; }
