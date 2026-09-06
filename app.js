@@ -825,7 +825,7 @@ function initApp() {
       } else {
         logActivity(`➕ Nýtt fyrirtæki: ${company || address || "án nafns"} — ${stageLabel}`);
       }
-      checklistMsg.textContent = wasEdit ? "✓ Uppfært." : "✓ Vistað — komið á kortið og í Companies.";
+      checklistMsg.textContent = wasEdit ? "✓ Uppfært." : "✓ Vistað — komið á kortið og í Fyrirtæki.";
       checklistMsg.className = "success";
       checklistMsg.classList.remove("hidden");
       f.reset();
