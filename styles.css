@@ -495,14 +495,25 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 
 .note-card {
   position: relative; background: #fff; border: 1px solid var(--line);
-  border-radius: 12px; padding: 12px 40px 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
+  border-radius: 12px; padding: 12px 78px 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
 }
+.note-card.editing { padding: 12px 14px; }
 .note-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
 .note-body { font-size: 15px; white-space: pre-wrap; word-break: break-word; }
 .note-del {
   position: absolute; top: 8px; right: 8px; width: 28px; height: 28px;
   border: none; background: #f1f5f9; border-radius: 8px; font-size: 18px; line-height: 1; cursor: pointer; color: var(--muted);
 }
+.note-edit {
+  position: absolute; top: 8px; right: 42px; width: 28px; height: 28px;
+  border: none; background: #f1f5f9; border-radius: 8px; font-size: 14px; line-height: 1; cursor: pointer;
+}
+.note-edit-text, .note-edit-company {
+  width: 100%; padding: 10px 12px; font-size: 15px; font-family: inherit;
+  border: 1px solid var(--line); border-radius: 10px; background: #fff; margin-bottom: 8px;
+}
+.note-edit-text { resize: vertical; }
+.note-edit-actions { display: flex; gap: 8px; }
 
 .log-row {
   display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline;

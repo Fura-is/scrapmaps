@@ -1165,6 +1165,45 @@ function initApp() {
     renderLog();
   }, (e) => console.error("activity sync:", e));
 
+  function enterNoteEdit(card, n) {
+    card.innerHTML = "";
+    card.classList.add("editing");
+    const ta = document.createElement("textarea");
+    ta.className = "note-edit-text";
+    ta.rows = 3;
+    ta.value = n.text || "";
+    const comp = document.createElement("input");
+    comp.className = "note-edit-company";
+    comp.setAttribute("list", "noteCompanyList");
+    comp.placeholder = "🏢 Tengja við fyrirtæki (valfrjálst)…";
+    comp.value = n.company || "";
+    fillNoteCompanyList();
+    const row = document.createElement("div");
+    row.className = "note-edit-actions";
+    const save = document.createElement("button");
+    save.className = "btn primary small";
+    save.textContent = "Vista";
+    save.addEventListener("click", async () => {
+      const t = ta.value.trim();
+      if (!t) return;
+      try {
+        await updateDoc(doc(db, "diary_notes", n.id), {
+          text: t, company: comp.value.trim(), updatedAt: serverTimestamp(),
+        });
+      } catch (e) { alert("Tókst ekki að vista: " + e.message); }
+    });
+    const cancel = document.createElement("button");
+    cancel.className = "btn ghost small";
+    cancel.textContent = "Hætta við";
+    cancel.addEventListener("click", renderNotes);
+    row.appendChild(save);
+    row.appendChild(cancel);
+    card.appendChild(ta);
+    card.appendChild(comp);
+    card.appendChild(row);
+    ta.focus();
+  }
+
   function renderNotes() {
     const box = document.getElementById("notesList");
     if (!box) return;
@@ -1188,9 +1227,15 @@ function initApp() {
         if (!confirm("Eyða þessum punkti?")) return;
         try { await deleteDoc(doc(db, "diary_notes", n.id)); } catch (e) { alert(e.message); }
       });
+      const edit = document.createElement("button");
+      edit.className = "note-edit";
+      edit.textContent = "✏️";
+      edit.title = "Laga";
+      edit.addEventListener("click", () => enterNoteEdit(card, n));
       card.appendChild(meta);
       card.appendChild(body);
       card.appendChild(del);
+      card.appendChild(edit);
       if (n.company) {
         const foot = document.createElement("div");
         foot.className = "note-foot";
