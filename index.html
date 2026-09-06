@@ -228,10 +228,21 @@
       <section class="diary-block">
         <h2 class="diary-h">📝 Notes</h2>
         <div class="note-input">
+          <div class="note-authors" id="noteAuthors">
+            <button type="button" class="note-author-btn" data-author="Gunnar">Gunnar</button>
+            <button type="button" class="note-author-btn" data-author="Elvar">Elvar</button>
+            <button type="button" class="note-author-btn" data-author="Kobbi">Kobbi</button>
+          </div>
           <textarea id="noteText" rows="2" placeholder="Skrifaðu og ýttu á Enter…"></textarea>
           <input id="noteCompany" list="noteCompanyList" placeholder="🏢 Tengja við fyrirtæki (valfrjálst)…" autocomplete="off" />
           <datalist id="noteCompanyList"></datalist>
           <button id="noteAdd" class="btn primary">Bæta við</button>
+        </div>
+        <div class="note-filter" id="noteFilter">
+          <button class="note-filter-btn active" data-af="all">Allir</button>
+          <button class="note-filter-btn" data-af="Gunnar">Gunnar</button>
+          <button class="note-filter-btn" data-af="Elvar">Elvar</button>
+          <button class="note-filter-btn" data-af="Kobbi">Kobbi</button>
         </div>
         <div id="notesList"></div>
       </section>

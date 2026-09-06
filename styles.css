@@ -515,6 +515,24 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .note-edit-text { resize: vertical; }
 .note-edit-actions { display: flex; gap: 8px; }
 
+/* Note author picker + filter + badge */
+.note-authors { display: flex; gap: 6px; margin-bottom: 8px; }
+.note-author-btn {
+  flex: 1; padding: 7px 6px; border: 1px solid var(--line); background: #fff; border-radius: 8px;
+  font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.note-author-btn.active { background: var(--author-c, var(--visit)); color: #fff; border-color: var(--author-c, var(--visit)); }
+.note-filter { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.note-filter-btn {
+  padding: 5px 12px; border: 1px solid var(--line); background: #fff; border-radius: 999px;
+  font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.note-filter-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+.note-author-badge {
+  display: inline-block; color: #fff; border-radius: 999px; padding: 1px 8px;
+  font-size: 11px; font-weight: 700; margin-left: 6px; vertical-align: middle;
+}
+
 .log-row {
   display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline;
   padding: 9px 4px; border-bottom: 1px solid var(--line);

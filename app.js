@@ -1168,6 +1168,21 @@ function initApp() {
   function enterNoteEdit(card, n) {
     card.innerHTML = "";
     card.classList.add("editing");
+    let editAuthor = n.author || noteAuthor;
+    const auth = document.createElement("div");
+    auth.className = "note-authors";
+    NOTE_AUTHORS.forEach((a) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "note-author-btn" + (a === editAuthor ? " active" : "");
+      b.textContent = a;
+      b.style.setProperty("--author-c", AUTHOR_COLOR[a]);
+      b.addEventListener("click", () => {
+        editAuthor = a;
+        auth.querySelectorAll(".note-author-btn").forEach((x) => x.classList.toggle("active", x === b));
+      });
+      auth.appendChild(b);
+    });
     const ta = document.createElement("textarea");
     ta.className = "note-edit-text";
     ta.rows = 3;
@@ -1188,7 +1203,7 @@ function initApp() {
       if (!t) return;
       try {
         await updateDoc(doc(db, "diary_notes", n.id), {
-          text: t, company: comp.value.trim(), updatedAt: serverTimestamp(),
+          text: t, company: comp.value.trim(), author: editAuthor, updatedAt: serverTimestamp(),
         });
       } catch (e) { alert("Tókst ekki að vista: " + e.message); }
     });
@@ -1198,6 +1213,7 @@ function initApp() {
     cancel.addEventListener("click", renderNotes);
     row.appendChild(save);
     row.appendChild(cancel);
+    card.appendChild(auth);
     card.appendChild(ta);
     card.appendChild(comp);
     card.appendChild(row);
@@ -1207,7 +1223,8 @@ function initApp() {
   function renderNotes() {
     const box = document.getElementById("notesList");
     if (!box) return;
-    const rows = [...journalNotes].sort((a, b) => (b.t || 0) - (a.t || 0));
+    let rows = [...journalNotes].sort((a, b) => (b.t || 0) - (a.t || 0));
+    if (noteAuthorFilter !== "all") rows = rows.filter((n) => (n.author || "") === noteAuthorFilter);
     box.innerHTML = "";
     if (!rows.length) { box.innerHTML = `<p class="muted">Engir minnispunktar enn.</p>`; return; }
     for (const n of rows) {
@@ -1216,6 +1233,13 @@ function initApp() {
       const meta = document.createElement("div");
       meta.className = "note-meta";
       meta.textContent = fmtDateTime(n.t);
+      if (n.author) {
+        const who = document.createElement("span");
+        who.className = "note-author-badge";
+        who.textContent = n.author;
+        who.style.background = AUTHOR_COLOR[n.author] || "#64748b";
+        meta.appendChild(who);
+      }
       const body = document.createElement("div");
       body.className = "note-body";
       body.textContent = n.text || "";
@@ -1290,6 +1314,35 @@ function initApp() {
   const noteTextEl = document.getElementById("noteText");
   const noteCompanyEl = document.getElementById("noteCompany");
 
+  const NOTE_AUTHORS = ["Gunnar", "Elvar", "Kobbi"];
+  const AUTHOR_COLOR = { Gunnar: "#2563eb", Elvar: "#16a34a", Kobbi: "#92400e" };
+  let noteAuthor = "Elvar";
+  try { const s = localStorage.getItem("scrapmap_note_author"); if (NOTE_AUTHORS.includes(s)) noteAuthor = s; } catch (e) {}
+  let noteAuthorFilter = "all";
+
+  function refreshAuthorButtons() {
+    document.querySelectorAll("#noteAuthors .note-author-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.author === noteAuthor);
+      b.style.setProperty("--author-c", AUTHOR_COLOR[b.dataset.author] || "#64748b");
+    });
+  }
+  document.querySelectorAll("#noteAuthors .note-author-btn").forEach((b) => {
+    b.addEventListener("click", () => {
+      noteAuthor = b.dataset.author;
+      try { localStorage.setItem("scrapmap_note_author", noteAuthor); } catch (e) {}
+      refreshAuthorButtons();
+    });
+  });
+  refreshAuthorButtons();
+
+  document.querySelectorAll("#noteFilter .note-filter-btn").forEach((b) => {
+    b.addEventListener("click", () => {
+      noteAuthorFilter = b.dataset.af;
+      document.querySelectorAll("#noteFilter .note-filter-btn").forEach((x) => x.classList.toggle("active", x === b));
+      renderNotes();
+    });
+  });
+
   function fillNoteCompanyList() {
     const dl = document.getElementById("noteCompanyList");
     if (!dl) return;
@@ -1304,7 +1357,7 @@ function initApp() {
     if (!text) return;
     const company = noteCompanyEl.value.trim();
     try {
-      await addDoc(notesCol, { text, company, t: Date.now(), ts: serverTimestamp() });
+      await addDoc(notesCol, { text, company, author: noteAuthor, t: Date.now(), ts: serverTimestamp() });
       noteTextEl.value = "";
       noteCompanyEl.value = "";
     } catch (e) {
