@@ -495,7 +495,7 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 
 .note-card {
   position: relative; background: #fff; border: 1px solid var(--line);
-  border-radius: 12px; padding: 12px 78px 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
+  border-radius: 12px; padding: 12px 96px 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
 }
 .note-card.editing { padding: 12px 14px; }
 .note-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
@@ -505,8 +505,8 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
   border: none; background: #f1f5f9; border-radius: 8px; font-size: 18px; line-height: 1; cursor: pointer; color: var(--muted);
 }
 .note-edit {
-  position: absolute; top: 8px; right: 42px; width: 28px; height: 28px;
-  border: none; background: #f1f5f9; border-radius: 8px; font-size: 14px; line-height: 1; cursor: pointer;
+  position: absolute; top: 8px; right: 44px; height: 28px; padding: 0 10px;
+  border: none; background: #f1f5f9; border-radius: 8px; font-size: 13px; font-weight: 600; line-height: 28px; cursor: pointer; color: var(--muted);
 }
 .note-edit-text, .note-edit-company {
   width: 100%; padding: 10px 12px; font-size: 15px; font-family: inherit;

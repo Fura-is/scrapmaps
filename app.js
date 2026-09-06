@@ -1229,7 +1229,7 @@ function initApp() {
       });
       const edit = document.createElement("button");
       edit.className = "note-edit";
-      edit.textContent = "✏️";
+      edit.textContent = "edit";
       edit.title = "Laga";
       edit.addEventListener("click", () => enterNoteEdit(card, n));
       card.appendChild(meta);
