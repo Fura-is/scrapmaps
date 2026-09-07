@@ -465,9 +465,15 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .diary-tab.active { background: var(--visit); color: #fff; border-color: var(--visit); }
 
 .customer-counter {
-  text-align: right; color: var(--customer); font-weight: 800; font-size: 15px; margin-bottom: 12px;
+  text-align: right; color: var(--customer); font-weight: 800; font-size: 15px; margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px;
 }
-.customer-counter:empty { display: none; }
+.customer-see-btn {
+  border: 1px solid var(--customer); background: #fff; color: var(--customer);
+  border-radius: 999px; padding: 2px 12px; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.customer-list { text-align: right; margin: 0 0 14px; }
+.customer-list-item { color: var(--customer); font-weight: 600; font-size: 14px; padding: 2px 0; }
 .diary-block { margin-bottom: 26px; }
 .diary-block:last-child { margin-bottom: 0; }
 .diary-h { font-size: 18px; margin: 0 0 10px; }

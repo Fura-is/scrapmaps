@@ -1160,17 +1160,47 @@ function initApp() {
     return false;
   }
 
-  function renderCustomerCounter() {
-    const el = document.getElementById("customerCounter");
-    if (!el) return;
-    const now = new Date();
-    const count = activityLog.filter((a) => {
-      if (typeof a.t !== "number") return false;
-      const d = new Date(a.t);
-      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && isNewCustomerLog(a);
-    }).length;
-    el.textContent = `🟢 Nýir viðskiptavinir í ${MONTHS_IS[now.getMonth()]}: ${count}`;
+  // Pull the company name out of a new-customer activity entry
+  function extractCustomerName(a) {
+    if (a.company) return a.company;
+    let t = (a.text || "").replace(/^\S+\s/, ""); // drop leading emoji
+    t = t.replace(/^Nýtt fyrirtæki:\s*/, "").replace(/^Ný nál:\s*/, "");
+    return t.split(" — ")[0].split(": staða")[0].trim();
   }
+
+  let customerListOpen = false;
+
+  function renderCustomerCounter() {
+    const textEl = document.getElementById("customerCounterText");
+    const btn = document.getElementById("customerCounterBtn");
+    const listEl = document.getElementById("customerCounterList");
+    if (!textEl) return;
+    const now = new Date();
+    const entries = activityLog
+      .filter((a) => {
+        if (typeof a.t !== "number") return false;
+        const d = new Date(a.t);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && isNewCustomerLog(a);
+      })
+      .sort((a, b) => (b.t || 0) - (a.t || 0));
+    textEl.textContent = `🟢 Nýir viðskiptavinir í ${MONTHS_IS[now.getMonth()]}: ${entries.length}`;
+    const names = [...new Set(entries.map(extractCustomerName).filter(Boolean))];
+    listEl.innerHTML = "";
+    for (const n of names) {
+      const row = document.createElement("div");
+      row.className = "customer-list-item";
+      row.textContent = "🟢 " + n;
+      listEl.appendChild(row);
+    }
+    btn.hidden = entries.length === 0;
+    btn.textContent = customerListOpen ? "fela" : "sjá";
+    listEl.hidden = !customerListOpen || entries.length === 0;
+  }
+
+  document.getElementById("customerCounterBtn").addEventListener("click", () => {
+    customerListOpen = !customerListOpen;
+    renderCustomerCounter();
+  });
 
   function fmtDateTime(ms) {
     if (typeof ms !== "number") return "";
