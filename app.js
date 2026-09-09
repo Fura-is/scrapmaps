@@ -306,6 +306,8 @@ function initApp() {
     wrap.querySelector(".popup-status").textContent =
       (STATUS_LABEL[p.status] || "") + (popupAddr ? " · " + popupAddr : "");
     wrap.querySelector(".popup-notes").textContent = p.notes || "";
+    const linkedPopup = buildLinkedNotesEl(p.name, "popup");
+    if (linkedPopup) wrap.querySelector(".popup-actions").before(linkedPopup);
     wrap.querySelector(".popup-edit").addEventListener("click", () => {
       markers.get(p.id)?.closePopup();
       openSheetForEdit(p);
@@ -977,6 +979,9 @@ function initApp() {
       card.appendChild(n);
     }
 
+    const linked = buildLinkedNotesEl(v.company || v.name);
+    if (linked) card.appendChild(linked);
+
     const actions = document.createElement("div");
     actions.className = "actions";
 
@@ -1209,9 +1214,52 @@ function initApp() {
     return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
   }
 
+  // Notes linked to a given company (matched by name)
+  function notesForCompany(name) {
+    const norm = (s) => (s || "").toLowerCase().trim().replace(/\s*ehf\.?$/i, "").trim();
+    const key = norm(name);
+    if (!key) return [];
+    return journalNotes.filter((n) => norm(n.company) === key).sort((a, b) => (b.t || 0) - (a.t || 0));
+  }
+
+  // Build a read-only block of the notes linked to a company (for card + map popup)
+  function buildLinkedNotesEl(name, variant) {
+    const notes = notesForCompany(name);
+    if (!notes.length) return null;
+    const box = document.createElement("div");
+    box.className = "linked-notes" + (variant === "popup" ? " linked-notes-popup" : "");
+    const head = document.createElement("div");
+    head.className = "linked-notes-head";
+    head.textContent = "📝 Minnispunktar (" + notes.length + ")";
+    box.appendChild(head);
+    for (const n of notes) {
+      const item = document.createElement("div");
+      item.className = "linked-note";
+      const meta = document.createElement("div");
+      meta.className = "linked-note-meta";
+      meta.textContent = fmtDateTime(n.t);
+      if (n.author) {
+        const who = document.createElement("span");
+        who.className = "note-author-badge";
+        who.textContent = n.author;
+        who.style.background = AUTHOR_COLOR[n.author] || "#64748b";
+        meta.appendChild(who);
+      }
+      const body = document.createElement("div");
+      body.className = "linked-note-body";
+      body.textContent = n.text || "";
+      item.appendChild(meta);
+      item.appendChild(body);
+      box.appendChild(item);
+    }
+    return box;
+  }
+
   onSnapshot(notesCol, (snap) => {
     journalNotes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderNotes();
+    renderCompanies();   // so linked notes show on company cards
+    renderMarkers();     // so linked notes show in map popups
   }, (e) => console.error("notes sync:", e));
 
   onSnapshot(activityCol, (snap) => {
