@@ -752,6 +752,7 @@ function initApp() {
     clVisitId = null;
     clStatusSel.value = "spotta";
     if (checklistTitle) checklistTitle.textContent = "Nýtt fyrirtæki";
+    setChecklistLinkedNotes("");
     checklistMsg.classList.add("hidden");
     showView("checklist");
     setTimeout(() => companyInput.focus(), 50);
@@ -778,7 +779,8 @@ function initApp() {
       clearClLocation();
     }
     clStatusSel.value = legacyMap[v.status] || v.status || "spotta";
-    if (checklistTitle) checklistTitle.textContent = "Breyta fyrirtæki";
+    if (checklistTitle) checklistTitle.textContent = "Sjá nánar";
+    setChecklistLinkedNotes(v.company || v.name);
     suggestionsBox.classList.add("hidden");
     checklistMsg.classList.add("hidden");
     showView("checklist");
@@ -987,7 +989,7 @@ function initApp() {
 
     const editBtn = document.createElement("button");
     editBtn.className = "btn primary";
-    editBtn.textContent = "✏️ Breyta / staða";
+    editBtn.textContent = "Sjá nánar";
     editBtn.addEventListener("click", () => openCompanyForEdit(v));
     actions.appendChild(editBtn);
 
@@ -1253,6 +1255,15 @@ function initApp() {
       box.appendChild(item);
     }
     return box;
+  }
+
+  // Fill the linked-notes area at the bottom of the "Sjá nánar" detail view
+  function setChecklistLinkedNotes(name) {
+    const box = document.getElementById("checklistLinkedNotes");
+    if (!box) return;
+    box.innerHTML = "";
+    const el = buildLinkedNotesEl(name);
+    if (el) box.appendChild(el);
   }
 
   onSnapshot(notesCol, (snap) => {
