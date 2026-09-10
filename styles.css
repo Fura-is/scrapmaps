@@ -483,6 +483,28 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .linked-note-body { font-size: 13px; white-space: pre-wrap; word-break: break-word; }
 .linked-notes-popup { max-height: 150px; overflow-y: auto; margin-top: 8px; }
 .linked-notes-popup .linked-note { background: #f1f5f9; }
+
+/* ---------- Símaskrá (phonebook) ---------- */
+.phonebook { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 18px; }
+.phonebook-input { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.phonebook-input input {
+  flex: 1 1 150px; padding: 10px 12px; font-size: 15px; font-family: inherit;
+  border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--text);
+}
+.phonebook-input .btn { flex: 0 0 auto; }
+.pb-search {
+  width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid var(--line);
+  border-radius: 10px; margin-bottom: 10px; background: #fff; color: var(--text);
+}
+.pb-row { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-bottom: 1px solid var(--line); }
+.pb-info { flex: 1; min-width: 0; }
+.pb-name { font-weight: 600; word-break: break-word; }
+.pb-company {
+  display: inline-block; margin-top: 3px; border: 1px solid #c7d2fe; background: #eef2ff;
+  color: var(--visit); border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.pb-phone { flex: 0 0 auto; color: var(--customer); font-weight: 700; font-size: 14px; text-decoration: none; white-space: nowrap; }
+.pb-del { flex: 0 0 auto; border: none; background: #f1f5f9; color: var(--muted); width: 28px; height: 28px; border-radius: 8px; font-size: 18px; line-height: 1; cursor: pointer; }
 .diary-block { margin-bottom: 26px; }
 .diary-block:last-child { margin-bottom: 0; }
 .diary-h { font-size: 18px; margin: 0 0 10px; }

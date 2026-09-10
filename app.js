@@ -1148,6 +1148,94 @@ function initApp() {
   let activityLog = [];
   const RETENTION_MS = 40 * 24 * 60 * 60 * 1000; // 40 days
 
+  // ---- Símaskrá (phonebook) ----
+  const contactsCol = collection(db, "contacts");
+  let phonebook = [];
+
+  onSnapshot(contactsCol, (snap) => {
+    phonebook = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderPhonebook();
+  }, (e) => console.error("contacts sync:", e));
+
+  async function addContact() {
+    const nameEl = document.getElementById("pbName");
+    const compEl = document.getElementById("pbCompany");
+    const phoneEl = document.getElementById("pbPhone");
+    const name = nameEl.value.trim();
+    const company = compEl.value.trim();
+    const phone = phoneEl.value.trim();
+    if (!name && !phone) return;
+    try {
+      await addDoc(contactsCol, { name, company, phone, t: Date.now(), ts: serverTimestamp() });
+      nameEl.value = ""; compEl.value = ""; phoneEl.value = "";
+      nameEl.focus();
+    } catch (e) { alert("Tókst ekki að vista: " + e.message); }
+  }
+
+  function renderPhonebook() {
+    const box = document.getElementById("phonebookList");
+    if (!box) return;
+    const q = (document.getElementById("pbSearch").value || "").trim().toLowerCase();
+    let rows = [...phonebook].sort((a, b) => (a.name || "").localeCompare(b.name || "", "is"));
+    if (q) rows = rows.filter((c) => [c.name, c.company, c.phone].filter(Boolean).join(" ").toLowerCase().includes(q));
+    box.innerHTML = "";
+    if (!rows.length) { box.innerHTML = `<p class="muted">Engin nöfn enn.</p>`; return; }
+    for (const c of rows) {
+      const row = document.createElement("div");
+      row.className = "pb-row";
+      const info = document.createElement("div");
+      info.className = "pb-info";
+      const nm = document.createElement("div");
+      nm.className = "pb-name";
+      nm.textContent = c.name || "(nafnlaus)";
+      info.appendChild(nm);
+      if (c.company) {
+        const co = document.createElement("button");
+        co.className = "pb-company";
+        co.textContent = "🏢 " + c.company;
+        co.title = "Fara á fyrirtæki";
+        co.addEventListener("click", () => {
+          const pl = findPlaceByCompany(c.company);
+          if (pl && typeof pl.lat === "number" && typeof pl.lng === "number") {
+            showView("map");
+            map.flyTo([pl.lat, pl.lng], 16);
+            setTimeout(() => markers.get(pl.id)?.openPopup(), 400);
+          } else {
+            showView("companies");
+            const cs = document.getElementById("companiesSearch");
+            if (cs) { cs.value = c.company; renderCompanies(); }
+          }
+        });
+        info.appendChild(co);
+      }
+      row.appendChild(info);
+      if (c.phone) {
+        const tel = document.createElement("a");
+        tel.className = "pb-phone";
+        tel.href = "tel:" + c.phone.replace(/\s+/g, "");
+        tel.textContent = "📞 " + c.phone;
+        row.appendChild(tel);
+      }
+      const del = document.createElement("button");
+      del.className = "pb-del";
+      del.textContent = "×";
+      del.title = "Eyða";
+      del.addEventListener("click", async () => {
+        if (!confirm("Eyða " + (c.name || "þessu") + " úr símaskrá?")) return;
+        try { await deleteDoc(doc(db, "contacts", c.id)); } catch (e) { alert(e.message); }
+      });
+      row.appendChild(del);
+      box.appendChild(row);
+    }
+  }
+
+  document.getElementById("pbAdd").addEventListener("click", addContact);
+  document.getElementById("pbSearch").addEventListener("input", renderPhonebook);
+  document.getElementById("pbCompany").addEventListener("focus", fillNoteCompanyList);
+  document.getElementById("pbPhone").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); addContact(); }
+  });
+
   function logActivity(text, type) {
     if (!text) return;
     const entry = { text, t: Date.now(), ts: serverTimestamp() };
