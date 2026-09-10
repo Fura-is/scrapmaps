@@ -485,7 +485,6 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .linked-notes-popup .linked-note { background: #f1f5f9; }
 
 /* ---------- Símaskrá (phonebook) ---------- */
-.phonebook { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 18px; }
 .phonebook-input { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .phonebook-input input {
   flex: 1 1 150px; padding: 10px 12px; font-size: 15px; font-family: inherit;
