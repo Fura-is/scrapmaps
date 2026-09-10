@@ -509,12 +509,16 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .diary-block:last-child { margin-bottom: 0; }
 .diary-h { font-size: 18px; margin: 0 0 10px; }
 
-/* Notes left, Punktar right — side by side; stacks only on very small phones */
-.diary-grid { display: flex; gap: 16px; align-items: flex-start; }
-.diary-grid .diary-block { flex: 1 1 0; min-width: 0; margin-bottom: 0; }
+/* Notes | Punktar | Símaskrá — side by side with clear dividers; stacks only on very small phones */
+.diary-grid { display: flex; gap: 0; align-items: stretch; }
+.diary-grid .diary-block { flex: 1 1 0; min-width: 0; margin-bottom: 0; padding: 0 22px; }
+.diary-grid .diary-block:first-child { padding-left: 0; }
+.diary-grid .diary-block:last-child { padding-right: 0; }
+.diary-grid .diary-block:not(:last-child) { border-right: 2px solid var(--line); }
 @media (max-width: 340px) {
-  .diary-grid { flex-direction: column; gap: 20px; }
-  .diary-grid .diary-block { width: 100%; }
+  .diary-grid { flex-direction: column; gap: 0; }
+  .diary-grid .diary-block { width: 100%; padding: 18px 0; border-right: none; }
+  .diary-grid .diary-block:not(:last-child) { border-bottom: 2px solid var(--line); }
 }
 
 #noteCompany {
