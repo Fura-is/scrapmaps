@@ -1161,13 +1161,15 @@ function initApp() {
     const nameEl = document.getElementById("pbName");
     const compEl = document.getElementById("pbCompany");
     const phoneEl = document.getElementById("pbPhone");
+    const emailEl = document.getElementById("pbEmail");
     const name = nameEl.value.trim();
     const company = compEl.value.trim();
     const phone = phoneEl.value.trim();
-    if (!name && !phone) return;
+    const email = emailEl.value.trim();
+    if (!name && !phone && !email) return;
     try {
-      await addDoc(contactsCol, { name, company, phone, t: Date.now(), ts: serverTimestamp() });
-      nameEl.value = ""; compEl.value = ""; phoneEl.value = "";
+      await addDoc(contactsCol, { name, company, phone, email, t: Date.now(), ts: serverTimestamp() });
+      nameEl.value = ""; compEl.value = ""; phoneEl.value = ""; emailEl.value = "";
       nameEl.focus();
     } catch (e) { alert("Tókst ekki að vista: " + e.message); }
   }
@@ -1177,7 +1179,7 @@ function initApp() {
     if (!box) return;
     const q = (document.getElementById("pbSearch").value || "").trim().toLowerCase();
     let rows = [...phonebook].sort((a, b) => (a.name || "").localeCompare(b.name || "", "is"));
-    if (q) rows = rows.filter((c) => [c.name, c.company, c.phone].filter(Boolean).join(" ").toLowerCase().includes(q));
+    if (q) rows = rows.filter((c) => [c.name, c.company, c.phone, c.email].filter(Boolean).join(" ").toLowerCase().includes(q));
     box.innerHTML = "";
     if (!rows.length) { box.innerHTML = `<p class="muted">Engin nöfn enn.</p>`; return; }
     for (const c of rows) {
@@ -1208,14 +1210,21 @@ function initApp() {
         });
         info.appendChild(co);
       }
-      row.appendChild(info);
       if (c.phone) {
         const tel = document.createElement("a");
         tel.className = "pb-phone";
         tel.href = "tel:" + c.phone.replace(/\s+/g, "");
         tel.textContent = "📞 " + c.phone;
-        row.appendChild(tel);
+        info.appendChild(tel);
       }
+      if (c.email) {
+        const em = document.createElement("a");
+        em.className = "pb-email";
+        em.href = "mailto:" + c.email;
+        em.textContent = "✉️ " + c.email;
+        info.appendChild(em);
+      }
+      row.appendChild(info);
       const del = document.createElement("button");
       del.className = "pb-del";
       del.textContent = "×";
