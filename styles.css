@@ -505,6 +505,35 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .pb-phone { display: block; margin-top: 3px; color: var(--customer); font-weight: 700; font-size: 14px; text-decoration: none; }
 .pb-email { display: block; margin-top: 3px; color: var(--visit); font-weight: 600; font-size: 13px; text-decoration: none; word-break: break-all; }
 .pb-del { flex: 0 0 auto; border: none; background: #f1f5f9; color: var(--muted); width: 28px; height: 28px; border-radius: 8px; font-size: 18px; line-height: 1; cursor: pointer; }
+
+/* ---------- Dagatal (to-do list) ---------- */
+.todo-input { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; max-width: 640px; }
+.todo-input input, .todo-input textarea {
+  width: 100%; padding: 10px 12px; font-size: 15px; font-family: inherit;
+  border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--text);
+}
+.todo-input textarea { resize: vertical; }
+.todo-input-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.todo-input-row input { flex: 1 1 150px; width: auto; }
+.todo-input .btn { align-self: flex-start; }
+.todo-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 6px; border-bottom: 1px solid var(--line); max-width: 760px; }
+.todo-check {
+  flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--line);
+  background: #fff; cursor: pointer; font-size: 15px; font-weight: 800; color: #fff; line-height: 1;
+}
+.todo-check.on { background: var(--customer); border-color: var(--customer); }
+.todo-body { flex: 1; min-width: 0; }
+.todo-title { font-weight: 600; font-size: 15px; word-break: break-word; }
+.todo-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 3px; font-size: 13px; color: var(--muted); }
+.todo-date.overdue { color: var(--done); font-weight: 700; }
+.todo-company {
+  display: inline-block; margin-top: 5px; border: 1px solid #c7d2fe; background: #eef2ff;
+  color: var(--visit); border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.todo-notes { margin-top: 5px; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+.todo-del { flex: 0 0 auto; border: none; background: #f1f5f9; color: var(--muted); width: 28px; height: 28px; border-radius: 8px; font-size: 18px; line-height: 1; cursor: pointer; }
+.todo-row.done { opacity: .65; }
+.todo-row.done .todo-title { text-decoration: line-through; color: var(--muted); }
 .diary-block { margin-bottom: 26px; }
 .diary-block:last-child { margin-bottom: 0; }
 .diary-h { font-size: 18px; margin: 0 0 10px; }

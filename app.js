@@ -1245,6 +1245,138 @@ function initApp() {
     if (e.key === "Enter") { e.preventDefault(); addContact(); }
   });
 
+  // ---- Dagatal (to-do list) ----
+  const todosCol = collection(db, "todos");
+  let todos = [];
+
+  onSnapshot(todosCol, (snap) => {
+    todos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderTodos();
+  }, (e) => console.error("todos sync:", e));
+
+  function fillContactNamesList() {
+    const dl = document.getElementById("contactNamesList");
+    if (!dl) return;
+    const names = [...new Set(phonebook.map((c) => c.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, "is"));
+    dl.innerHTML = names.map((n) => `<option value="${n.replace(/"/g, "&quot;")}"></option>`).join("");
+  }
+
+  async function addTodo() {
+    const t = document.getElementById("tdTitle");
+    const dt = document.getElementById("tdDate");
+    const co = document.getElementById("tdCompany");
+    const pe = document.getElementById("tdPeople");
+    const no = document.getElementById("tdNotes");
+    const title = t.value.trim();
+    if (!title) return;
+    try {
+      await addDoc(todosCol, {
+        title, date: dt.value || "", company: co.value.trim(), people: pe.value.trim(),
+        notes: no.value.trim(), done: false, t: Date.now(), ts: serverTimestamp(),
+      });
+      t.value = ""; dt.value = ""; co.value = ""; pe.value = ""; no.value = "";
+      t.focus();
+    } catch (e) { alert("Tókst ekki að vista: " + e.message); }
+  }
+
+  function renderTodos() {
+    const box = document.getElementById("todoList");
+    if (!box) return;
+    const todayISOd = todayISO();
+    const rows = [...todos].sort((a, b) => {
+      if (!!a.done !== !!b.done) return a.done ? 1 : -1;       // done last
+      const ad = a.date || "9999-99-99", bd = b.date || "9999-99-99"; // undated last
+      if (ad !== bd) return ad < bd ? -1 : 1;                  // soonest first
+      return (a.t || 0) - (b.t || 0);
+    });
+    box.innerHTML = "";
+    if (!rows.length) { box.innerHTML = `<p class="muted">Ekkert á dagatalinu enn.</p>`; return; }
+    for (const td of rows) {
+      const row = document.createElement("div");
+      row.className = "todo-row" + (td.done ? " done" : "");
+
+      const chk = document.createElement("button");
+      chk.className = "todo-check" + (td.done ? " on" : "");
+      chk.textContent = td.done ? "✓" : "";
+      chk.title = td.done ? "Afmerkja" : "Merkja búið";
+      chk.addEventListener("click", async () => {
+        try { await updateDoc(doc(db, "todos", td.id), { done: !td.done, updatedAt: serverTimestamp() }); } catch (e) { alert(e.message); }
+      });
+      row.appendChild(chk);
+
+      const body = document.createElement("div");
+      body.className = "todo-body";
+
+      const title = document.createElement("div");
+      title.className = "todo-title";
+      title.textContent = td.title || "";
+      body.appendChild(title);
+
+      const meta = document.createElement("div");
+      meta.className = "todo-meta";
+      if (td.date) {
+        const d = document.createElement("span");
+        d.className = "todo-date" + (!td.done && td.date < todayISOd ? " overdue" : "");
+        d.textContent = "📅 " + formatDate(td.date);
+        meta.appendChild(d);
+      }
+      if (td.people) {
+        const p = document.createElement("span");
+        p.className = "todo-people";
+        p.textContent = "👤 " + td.people;
+        meta.appendChild(p);
+      }
+      if (meta.children.length) body.appendChild(meta);
+
+      if (td.company) {
+        const co = document.createElement("button");
+        co.className = "todo-company";
+        co.textContent = "🏢 " + td.company;
+        co.title = "Fara á fyrirtæki";
+        co.addEventListener("click", () => {
+          const pl = findPlaceByCompany(td.company);
+          if (pl && typeof pl.lat === "number" && typeof pl.lng === "number") {
+            showView("map");
+            map.flyTo([pl.lat, pl.lng], 16);
+            setTimeout(() => markers.get(pl.id)?.openPopup(), 400);
+          } else {
+            showView("companies");
+            const cs = document.getElementById("companiesSearch");
+            if (cs) { cs.value = td.company; renderCompanies(); }
+          }
+        });
+        body.appendChild(co);
+      }
+
+      if (td.notes) {
+        const n = document.createElement("div");
+        n.className = "todo-notes";
+        n.textContent = td.notes;
+        body.appendChild(n);
+      }
+      row.appendChild(body);
+
+      const del = document.createElement("button");
+      del.className = "todo-del";
+      del.textContent = "×";
+      del.title = "Eyða";
+      del.addEventListener("click", async () => {
+        if (!confirm("Eyða þessu verki?")) return;
+        try { await deleteDoc(doc(db, "todos", td.id)); } catch (e) { alert(e.message); }
+      });
+      row.appendChild(del);
+
+      box.appendChild(row);
+    }
+  }
+
+  document.getElementById("tdAdd").addEventListener("click", addTodo);
+  document.getElementById("tdCompany").addEventListener("focus", fillNoteCompanyList);
+  document.getElementById("tdPeople").addEventListener("focus", fillContactNamesList);
+  document.getElementById("tdTitle").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); addTodo(); }
+  });
+
   function logActivity(text, type) {
     if (!text) return;
     const entry = { text, t: Date.now(), ts: serverTimestamp() };

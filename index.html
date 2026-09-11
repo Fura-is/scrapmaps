@@ -26,6 +26,7 @@
     <button class="tab active" data-view="map">🗺 Kort</button>
     <button class="tab" data-view="companies">📊 Fyrirtæki</button>
     <button class="tab" data-view="diary">📔 Dagbók</button>
+    <button class="tab" data-view="dagatal">📅 Dagatal</button>
   </nav>
 
   <!-- ============================================================ -->
@@ -273,6 +274,28 @@
         <div id="phonebookList"></div>
       </section>
       </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- PART 5 — Dagatal (to-do list) -->
+  <!-- ============================================================ -->
+  <div id="dagatalView" class="view hidden">
+    <div class="panel">
+      <h2 class="diary-h">📅 Dagatal</h2>
+      <p class="muted">To-do listi — hakaðu við þegar búið.</p>
+      <div class="todo-input">
+        <input id="tdTitle" type="text" placeholder="Hvað á að gera?" autocomplete="off" />
+        <div class="todo-input-row">
+          <input id="tdDate" type="date" />
+          <input id="tdCompany" list="noteCompanyList" type="text" placeholder="🏢 Fyrirtæki (valfrjálst)" autocomplete="off" />
+          <input id="tdPeople" list="contactNamesList" type="text" placeholder="👤 Fólk (valfrjálst)" autocomplete="off" />
+          <datalist id="contactNamesList"></datalist>
+        </div>
+        <textarea id="tdNotes" rows="2" placeholder="Hvað ætlum við að gera…"></textarea>
+        <button id="tdAdd" class="btn primary">Bæta við</button>
+      </div>
+      <div id="todoList"></div>
     </div>
   </div>
 
