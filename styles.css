@@ -563,6 +563,19 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
   .cal-cell { min-height: 76px; }
   .cal-item { font-size: 10px; }
 }
+
+/* Dagatal: 2/3 calendar + 1/3 compose sidebar */
+.dagatal-layout { display: flex; gap: 20px; align-items: flex-start; }
+.cal-main { flex: 2 1 0; min-width: 0; }
+.cal-side { flex: 1 1 0; min-width: 0; border-left: 1px solid var(--line); padding-left: 20px; }
+.cal-side-title { margin: 0 0 10px; font-size: 17px; }
+.cal-side .todo-input { max-width: none; }
+.cal-day-side { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+.cal-day-side h4 { margin: 0 0 10px; font-size: 15px; color: var(--muted); }
+@media (max-width: 720px) {
+  .dagatal-layout { flex-direction: column; }
+  .cal-side { border-left: none; border-top: 1px solid var(--line); padding-left: 0; padding-top: 16px; width: 100%; }
+}
 .diary-block { margin-bottom: 26px; }
 .diary-block:last-child { margin-bottom: 0; }
 .diary-h { font-size: 18px; margin: 0 0 10px; }

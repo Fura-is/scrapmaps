@@ -1249,7 +1249,7 @@ function initApp() {
   const todosCol = collection(db, "todos");
   let todos = [];
   let calMonth = (() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; })();
-  let calSelected = null; // "YYYY-MM-DD" of the day being viewed
+  let calSelected = todayISO(); // "YYYY-MM-DD" of the day being viewed / composed for
   const CAL_WEEKDAYS = ["Mán", "Þri", "Mið", "Fim", "Fös", "Lau", "Sun"];
 
   onSnapshot(todosCol, (snap) => {
@@ -1276,7 +1276,8 @@ function initApp() {
     const no = document.getElementById("tdNotes");
     const title = t.value.trim();
     if (!title) return;
-    const date = calSelected || todayISO();
+    const dd = document.getElementById("tdDate");
+    const date = (dd && dd.value) || calSelected || todayISO();
     try {
       await addDoc(todosCol, {
         title, date, company: co.value.trim(), people: pe.value.trim(),
@@ -1335,7 +1336,13 @@ function initApp() {
         more.textContent = "+" + (items.length - 4) + " fleiri";
         cell.appendChild(more);
       }
-      cell.addEventListener("click", () => { calSelected = iso; renderCalendar(); renderDayPanel(); });
+      cell.addEventListener("click", () => {
+        calSelected = iso;
+        const dd = document.getElementById("tdDate");
+        if (dd) dd.value = iso;
+        renderCalendar();
+        renderDayPanel();
+      });
       body.appendChild(cell);
     }
     grid.appendChild(body);
@@ -1395,17 +1402,15 @@ function initApp() {
   }
 
   function renderDayPanel() {
-    const panel = document.getElementById("calDay");
-    if (!panel) return;
-    if (!calSelected) { panel.classList.add("hidden"); return; }
-    panel.classList.remove("hidden");
-    document.getElementById("calDayTitle").textContent = formatDate(calSelected);
+    const titleEl = document.getElementById("calDayTitle");
     const list = document.getElementById("calDayList");
+    if (!list) return;
+    titleEl.textContent = calSelected ? "📋 " + formatDate(calSelected) : "";
     const items = todos
       .filter((t) => t.date === calSelected)
       .sort((a, b) => (!!a.done !== !!b.done) ? (a.done ? 1 : -1) : ((a.t || 0) - (b.t || 0)));
     list.innerHTML = "";
-    if (!items.length) { list.innerHTML = `<p class="muted">Ekkert skráð þennan dag — bættu við hér að neðan.</p>`; }
+    if (!items.length) { list.innerHTML = `<p class="muted">Ekkert skráð þennan dag.</p>`; }
     else for (const td of items) list.appendChild(buildTodoRow(td));
   }
 
@@ -1413,15 +1418,20 @@ function initApp() {
   document.getElementById("calNext").addEventListener("click", () => { calMonth.setMonth(calMonth.getMonth() + 1); renderCalendar(); });
   document.getElementById("calToday").addEventListener("click", () => {
     const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); calMonth = d;
-    calSelected = todayISO(); renderCalendar(); renderDayPanel();
+    calSelected = todayISO(); document.getElementById("tdDate").value = calSelected; renderCalendar(); renderDayPanel();
   });
-  document.getElementById("calDayClose").addEventListener("click", () => { calSelected = null; renderCalendar(); renderDayPanel(); });
+  document.getElementById("tdDate").addEventListener("change", (e) => {
+    calSelected = e.target.value || todayISO();
+    renderCalendar(); renderDayPanel();
+  });
   document.getElementById("tdAdd").addEventListener("click", addTodo);
   document.getElementById("tdCompany").addEventListener("focus", fillNoteCompanyList);
   document.getElementById("tdPeople").addEventListener("focus", fillContactNamesList);
   document.getElementById("tdTitle").addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); addTodo(); }
   });
+  document.getElementById("tdDate").value = calSelected;
+  renderDayPanel();
 
   function logActivity(text, type) {
     if (!text) return;
