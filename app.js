@@ -1245,14 +1245,22 @@ function initApp() {
     if (e.key === "Enter") { e.preventDefault(); addContact(); }
   });
 
-  // ---- Dagatal (to-do list) ----
+  // ---- Dagatal (calendar / to-do) ----
   const todosCol = collection(db, "todos");
   let todos = [];
+  let calMonth = (() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; })();
+  let calSelected = null; // "YYYY-MM-DD" of the day being viewed
+  const CAL_WEEKDAYS = ["Mán", "Þri", "Mið", "Fim", "Fös", "Lau", "Sun"];
 
   onSnapshot(todosCol, (snap) => {
     todos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    renderTodos();
+    renderCalendar();
+    renderDayPanel();
   }, (e) => console.error("todos sync:", e));
+
+  function isoOf(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
 
   function fillContactNamesList() {
     const dl = document.getElementById("contactNamesList");
@@ -1263,113 +1271,151 @@ function initApp() {
 
   async function addTodo() {
     const t = document.getElementById("tdTitle");
-    const dt = document.getElementById("tdDate");
     const co = document.getElementById("tdCompany");
     const pe = document.getElementById("tdPeople");
     const no = document.getElementById("tdNotes");
     const title = t.value.trim();
     if (!title) return;
+    const date = calSelected || todayISO();
     try {
       await addDoc(todosCol, {
-        title, date: dt.value || "", company: co.value.trim(), people: pe.value.trim(),
+        title, date, company: co.value.trim(), people: pe.value.trim(),
         notes: no.value.trim(), done: false, t: Date.now(), ts: serverTimestamp(),
       });
-      t.value = ""; dt.value = ""; co.value = ""; pe.value = ""; no.value = "";
+      t.value = ""; co.value = ""; pe.value = ""; no.value = "";
       t.focus();
     } catch (e) { alert("Tókst ekki að vista: " + e.message); }
   }
 
-  function renderTodos() {
-    const box = document.getElementById("todoList");
-    if (!box) return;
-    const todayISOd = todayISO();
-    const rows = [...todos].sort((a, b) => {
-      if (!!a.done !== !!b.done) return a.done ? 1 : -1;       // done last
-      const ad = a.date || "9999-99-99", bd = b.date || "9999-99-99"; // undated last
-      if (ad !== bd) return ad < bd ? -1 : 1;                  // soonest first
-      return (a.t || 0) - (b.t || 0);
-    });
-    box.innerHTML = "";
-    if (!rows.length) { box.innerHTML = `<p class="muted">Ekkert á dagatalinu enn.</p>`; return; }
-    for (const td of rows) {
-      const row = document.createElement("div");
-      row.className = "todo-row" + (td.done ? " done" : "");
+  function renderCalendar() {
+    const grid = document.getElementById("calGrid");
+    const label = document.getElementById("calMonthLabel");
+    if (!grid) return;
+    const year = calMonth.getFullYear(), month = calMonth.getMonth();
+    label.textContent = MONTHS_IS[month].charAt(0).toUpperCase() + MONTHS_IS[month].slice(1) + " " + year;
 
-      const chk = document.createElement("button");
-      chk.className = "todo-check" + (td.done ? " on" : "");
-      chk.textContent = td.done ? "✓" : "";
-      chk.title = td.done ? "Afmerkja" : "Merkja búið";
-      chk.addEventListener("click", async () => {
-        try { await updateDoc(doc(db, "todos", td.id), { done: !td.done, updatedAt: serverTimestamp() }); } catch (e) { alert(e.message); }
-      });
-      row.appendChild(chk);
+    const byDate = {};
+    for (const t of todos) { if (!t.date) continue; (byDate[t.date] = byDate[t.date] || []).push(t); }
 
-      const body = document.createElement("div");
-      body.className = "todo-body";
-
-      const title = document.createElement("div");
-      title.className = "todo-title";
-      title.textContent = td.title || "";
-      body.appendChild(title);
-
-      const meta = document.createElement("div");
-      meta.className = "todo-meta";
-      if (td.date) {
-        const d = document.createElement("span");
-        d.className = "todo-date" + (!td.done && td.date < todayISOd ? " overdue" : "");
-        d.textContent = "📅 " + formatDate(td.date);
-        meta.appendChild(d);
-      }
-      if (td.people) {
-        const p = document.createElement("span");
-        p.className = "todo-people";
-        p.textContent = "👤 " + td.people;
-        meta.appendChild(p);
-      }
-      if (meta.children.length) body.appendChild(meta);
-
-      if (td.company) {
-        const co = document.createElement("button");
-        co.className = "todo-company";
-        co.textContent = "🏢 " + td.company;
-        co.title = "Fara á fyrirtæki";
-        co.addEventListener("click", () => {
-          const pl = findPlaceByCompany(td.company);
-          if (pl && typeof pl.lat === "number" && typeof pl.lng === "number") {
-            showView("map");
-            map.flyTo([pl.lat, pl.lng], 16);
-            setTimeout(() => markers.get(pl.id)?.openPopup(), 400);
-          } else {
-            showView("companies");
-            const cs = document.getElementById("companiesSearch");
-            if (cs) { cs.value = td.company; renderCompanies(); }
-          }
-        });
-        body.appendChild(co);
-      }
-
-      if (td.notes) {
-        const n = document.createElement("div");
-        n.className = "todo-notes";
-        n.textContent = td.notes;
-        body.appendChild(n);
-      }
-      row.appendChild(body);
-
-      const del = document.createElement("button");
-      del.className = "todo-del";
-      del.textContent = "×";
-      del.title = "Eyða";
-      del.addEventListener("click", async () => {
-        if (!confirm("Eyða þessu verki?")) return;
-        try { await deleteDoc(doc(db, "todos", td.id)); } catch (e) { alert(e.message); }
-      });
-      row.appendChild(del);
-
-      box.appendChild(row);
+    grid.innerHTML = "";
+    const head = document.createElement("div");
+    head.className = "cal-weekdays";
+    for (const d of CAL_WEEKDAYS) {
+      const c = document.createElement("div"); c.className = "cal-wd"; c.textContent = d; head.appendChild(c);
     }
+    grid.appendChild(head);
+
+    const first = new Date(year, month, 1);
+    const offset = (first.getDay() + 6) % 7; // Monday = 0
+    const start = new Date(year, month, 1 - offset);
+    const todayStr = isoOf(new Date());
+
+    const body = document.createElement("div");
+    body.className = "cal-body";
+    for (let i = 0; i < 42; i++) {
+      const cd = new Date(start); cd.setDate(start.getDate() + i);
+      const iso = isoOf(cd);
+      const inMonth = cd.getMonth() === month;
+      const cell = document.createElement("div");
+      cell.className = "cal-cell" + (inMonth ? "" : " other") + (iso === todayStr ? " today" : "") + (iso === calSelected ? " selected" : "");
+      const num = document.createElement("div");
+      num.className = "cal-num";
+      num.textContent = cd.getDate();
+      cell.appendChild(num);
+      const items = (byDate[iso] || []).sort((a, b) => (a.t || 0) - (b.t || 0));
+      for (const t of items.slice(0, 4)) {
+        const chip = document.createElement("div");
+        chip.className = "cal-item" + (t.done ? " done" : "");
+        chip.textContent = t.title || "";
+        cell.appendChild(chip);
+      }
+      if (items.length > 4) {
+        const more = document.createElement("div");
+        more.className = "cal-more";
+        more.textContent = "+" + (items.length - 4) + " fleiri";
+        cell.appendChild(more);
+      }
+      cell.addEventListener("click", () => { calSelected = iso; renderCalendar(); renderDayPanel(); });
+      body.appendChild(cell);
+    }
+    grid.appendChild(body);
   }
 
+  function buildTodoRow(td) {
+    const row = document.createElement("div");
+    row.className = "todo-row" + (td.done ? " done" : "");
+    const chk = document.createElement("button");
+    chk.className = "todo-check" + (td.done ? " on" : "");
+    chk.textContent = td.done ? "✓" : "";
+    chk.title = td.done ? "Afmerkja" : "Merkja búið";
+    chk.addEventListener("click", async () => {
+      try { await updateDoc(doc(db, "todos", td.id), { done: !td.done, updatedAt: serverTimestamp() }); } catch (e) { alert(e.message); }
+    });
+    row.appendChild(chk);
+
+    const body = document.createElement("div");
+    body.className = "todo-body";
+    const title = document.createElement("div");
+    title.className = "todo-title";
+    title.textContent = td.title || "";
+    body.appendChild(title);
+    if (td.people) {
+      const p = document.createElement("div"); p.className = "todo-meta"; p.textContent = "👤 " + td.people; body.appendChild(p);
+    }
+    if (td.company) {
+      const co = document.createElement("button");
+      co.className = "todo-company";
+      co.textContent = "🏢 " + td.company;
+      co.title = "Fara á fyrirtæki";
+      co.addEventListener("click", () => {
+        const pl = findPlaceByCompany(td.company);
+        if (pl && typeof pl.lat === "number" && typeof pl.lng === "number") {
+          showView("map"); map.flyTo([pl.lat, pl.lng], 16); setTimeout(() => markers.get(pl.id)?.openPopup(), 400);
+        } else {
+          showView("companies"); const cs = document.getElementById("companiesSearch"); if (cs) { cs.value = td.company; renderCompanies(); }
+        }
+      });
+      body.appendChild(co);
+    }
+    if (td.notes) {
+      const n = document.createElement("div"); n.className = "todo-notes"; n.textContent = td.notes; body.appendChild(n);
+    }
+    row.appendChild(body);
+
+    const del = document.createElement("button");
+    del.className = "todo-del";
+    del.textContent = "×";
+    del.title = "Eyða";
+    del.addEventListener("click", async () => {
+      if (!confirm("Eyða þessu verki?")) return;
+      try { await deleteDoc(doc(db, "todos", td.id)); } catch (e) { alert(e.message); }
+    });
+    row.appendChild(del);
+    return row;
+  }
+
+  function renderDayPanel() {
+    const panel = document.getElementById("calDay");
+    if (!panel) return;
+    if (!calSelected) { panel.classList.add("hidden"); return; }
+    panel.classList.remove("hidden");
+    document.getElementById("calDayTitle").textContent = formatDate(calSelected);
+    const list = document.getElementById("calDayList");
+    const items = todos
+      .filter((t) => t.date === calSelected)
+      .sort((a, b) => (!!a.done !== !!b.done) ? (a.done ? 1 : -1) : ((a.t || 0) - (b.t || 0)));
+    list.innerHTML = "";
+    if (!items.length) { list.innerHTML = `<p class="muted">Ekkert skráð þennan dag — bættu við hér að neðan.</p>`; }
+    else for (const td of items) list.appendChild(buildTodoRow(td));
+  }
+
+  document.getElementById("calPrev").addEventListener("click", () => { calMonth.setMonth(calMonth.getMonth() - 1); renderCalendar(); });
+  document.getElementById("calNext").addEventListener("click", () => { calMonth.setMonth(calMonth.getMonth() + 1); renderCalendar(); });
+  document.getElementById("calToday").addEventListener("click", () => {
+    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); calMonth = d;
+    calSelected = todayISO(); renderCalendar(); renderDayPanel();
+  });
+  document.getElementById("calDayClose").addEventListener("click", () => { calSelected = null; renderCalendar(); renderDayPanel(); });
   document.getElementById("tdAdd").addEventListener("click", addTodo);
   document.getElementById("tdCompany").addEventListener("focus", fillNoteCompanyList);
   document.getElementById("tdPeople").addEventListener("focus", fillContactNamesList);

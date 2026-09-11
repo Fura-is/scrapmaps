@@ -282,20 +282,33 @@
   <!-- ============================================================ -->
   <div id="dagatalView" class="view hidden">
     <div class="panel">
-      <h2 class="diary-h">📅 Dagatal</h2>
-      <p class="muted">To-do listi — hakaðu við þegar búið.</p>
-      <div class="todo-input">
-        <input id="tdTitle" type="text" placeholder="Hvað á að gera?" autocomplete="off" />
-        <div class="todo-input-row">
-          <input id="tdDate" type="date" />
-          <input id="tdCompany" list="noteCompanyList" type="text" placeholder="🏢 Fyrirtæki (valfrjálst)" autocomplete="off" />
-          <input id="tdPeople" list="contactNamesList" type="text" placeholder="👤 Fólk (valfrjálst)" autocomplete="off" />
-          <datalist id="contactNamesList"></datalist>
+      <div class="cal-toolbar">
+        <div class="cal-nav">
+          <button id="calPrev" class="cal-navbtn" title="Fyrri mánuður">‹</button>
+          <button id="calToday" class="cal-todaybtn">Í dag</button>
+          <button id="calNext" class="cal-navbtn" title="Næsti mánuður">›</button>
         </div>
-        <textarea id="tdNotes" rows="2" placeholder="Hvað ætlum við að gera…"></textarea>
-        <button id="tdAdd" class="btn primary">Bæta við</button>
+        <h2 id="calMonthLabel" class="cal-month"></h2>
       </div>
-      <div id="todoList"></div>
+      <div id="calGrid" class="cal-grid"></div>
+
+      <div id="calDay" class="cal-day hidden">
+        <div class="cal-day-head">
+          <h3 id="calDayTitle"></h3>
+          <button id="calDayClose" class="iconbtn-inline" title="Loka">×</button>
+        </div>
+        <div id="calDayList"></div>
+        <div class="todo-input">
+          <input id="tdTitle" type="text" placeholder="Hvað á að gera?" autocomplete="off" />
+          <div class="todo-input-row">
+            <input id="tdCompany" list="noteCompanyList" type="text" placeholder="🏢 Fyrirtæki (valfrjálst)" autocomplete="off" />
+            <input id="tdPeople" list="contactNamesList" type="text" placeholder="👤 Fólk (valfrjálst)" autocomplete="off" />
+            <datalist id="contactNamesList"></datalist>
+          </div>
+          <textarea id="tdNotes" rows="2" placeholder="Hvað ætlum við að gera…"></textarea>
+          <button id="tdAdd" class="btn primary">Bæta við</button>
+        </div>
+      </div>
     </div>
   </div>
 
