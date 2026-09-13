@@ -1262,6 +1262,14 @@ function initApp() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
+  async function toggleTodoDone(td) {
+    const nowDone = !td.done;
+    try {
+      await updateDoc(doc(db, "todos", td.id), { done: nowDone, updatedAt: serverTimestamp() });
+      if (nowDone) logActivity(`✅ Búið: ${td.title || "verk"}${td.company ? " — " + td.company : ""}`);
+    } catch (e) { alert(e.message); }
+  }
+
   function fillContactNamesList() {
     const dl = document.getElementById("contactNamesList");
     if (!dl) return;
@@ -1327,7 +1335,9 @@ function initApp() {
       for (const t of items.slice(0, 4)) {
         const chip = document.createElement("div");
         chip.className = "cal-item" + (t.done ? " done" : "");
-        chip.textContent = t.title || "";
+        chip.textContent = (t.done ? "✓ " : "") + (t.title || "");
+        chip.title = t.done ? "Búið — smelltu til að afmerkja" : "Smelltu til að merkja búið";
+        chip.addEventListener("click", (e) => { e.stopPropagation(); toggleTodoDone(t); });
         cell.appendChild(chip);
       }
       if (items.length > 4) {
@@ -1355,9 +1365,7 @@ function initApp() {
     chk.className = "todo-check" + (td.done ? " on" : "");
     chk.textContent = td.done ? "✓" : "";
     chk.title = td.done ? "Afmerkja" : "Merkja búið";
-    chk.addEventListener("click", async () => {
-      try { await updateDoc(doc(db, "todos", td.id), { done: !td.done, updatedAt: serverTimestamp() }); } catch (e) { alert(e.message); }
-    });
+    chk.addEventListener("click", () => toggleTodoDone(td));
     row.appendChild(chk);
 
     const body = document.createElement("div");
