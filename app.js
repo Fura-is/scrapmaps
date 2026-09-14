@@ -1244,6 +1244,10 @@ function initApp() {
   document.getElementById("pbPhone").addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); addContact(); }
   });
+  document.getElementById("pbToggle").addEventListener("click", () => {
+    const nowHidden = document.getElementById("phonebookBody").classList.toggle("hidden");
+    document.getElementById("pbCaret").textContent = nowHidden ? "▸" : "▾";
+  });
 
   // ---- Dagatal (calendar / to-do) ----
   const todosCol = collection(db, "todos");
