@@ -474,6 +474,9 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 }
 .customer-list { text-align: right; margin: 0 0 14px; }
 .customer-list-item { color: var(--customer); font-weight: 600; font-size: 14px; padding: 2px 0; }
+.customer-book-btn { border: none; background: transparent; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
+.customer-book-list { text-align: right; margin: 4px 0 14px; }
+.customer-book-item { color: var(--customer); font-weight: 600; font-size: 13px; padding: 2px 0; }
 
 /* Notes linked to a company — shown on the card and in the map popup */
 .linked-notes { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }

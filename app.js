@@ -1506,6 +1506,27 @@ function initApp() {
     renderCustomerCounter();
   });
 
+  // 📖 Book: dates we landed each customer (all recorded landings, newest first)
+  let customerBookOpen = false;
+  function renderCustomerBook() {
+    const list = document.getElementById("customerBookList");
+    if (!list) return;
+    const entries = activityLog.filter(isNewCustomerLog).sort((a, b) => (b.t || 0) - (a.t || 0));
+    list.innerHTML = "";
+    if (!entries.length) { list.innerHTML = `<p class="muted">Engir landaðir kúnnar skráðir enn.</p>`; return; }
+    for (const a of entries) {
+      const row = document.createElement("div");
+      row.className = "customer-book-item";
+      row.textContent = "🟢 " + extractCustomerName(a) + " — " + fmtDateTime(a.t);
+      list.appendChild(row);
+    }
+  }
+  document.getElementById("customerBookBtn").addEventListener("click", () => {
+    customerBookOpen = !customerBookOpen;
+    document.getElementById("customerBookList").hidden = !customerBookOpen;
+    if (customerBookOpen) renderCustomerBook();
+  });
+
   function fmtDateTime(ms) {
     if (typeof ms !== "number") return "";
     const d = new Date(ms);
@@ -1578,6 +1599,7 @@ function initApp() {
     }
     renderLog();
     renderCustomerCounter();
+    if (customerBookOpen) renderCustomerBook();
   }, (e) => console.error("activity sync:", e));
 
   function enterNoteEdit(card, n) {
