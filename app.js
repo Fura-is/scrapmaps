@@ -1511,7 +1511,14 @@ function initApp() {
   function renderCustomerBook() {
     const list = document.getElementById("customerBookList");
     if (!list) return;
-    const entries = activityLog.filter(isNewCustomerLog).sort((a, b) => (b.t || 0) - (a.t || 0));
+    const now = new Date();
+    const entries = activityLog
+      .filter((a) => {
+        if (!isNewCustomerLog(a) || typeof a.t !== "number") return false;
+        const d = new Date(a.t);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      })
+      .sort((a, b) => (b.t || 0) - (a.t || 0));
     list.innerHTML = "";
     if (!entries.length) { list.innerHTML = `<p class="muted">Engir landaðir kúnnar skráðir enn.</p>`; return; }
     for (const a of entries) {
