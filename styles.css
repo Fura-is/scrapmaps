@@ -474,9 +474,24 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 }
 .customer-list { text-align: right; margin: 0 0 14px; }
 .customer-list-item { color: var(--customer); font-weight: 600; font-size: 14px; padding: 2px 0; }
-.customer-book-btn { border: none; background: transparent; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
-.customer-book-list { text-align: right; margin: 4px 0 14px; }
-.customer-book-item { color: var(--customer); font-weight: 600; font-size: 13px; padding: 2px 0; }
+
+/* Saga — all-time new customers, grouped by month */
+.saga-total {
+  color: var(--customer); font-weight: 800; font-size: 18px; margin: 4px 0 18px;
+}
+.saga-month { margin-bottom: 20px; }
+.saga-month-title {
+  display: flex; align-items: center; gap: 8px; font-size: 15px; margin: 0 0 8px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--line);
+}
+.saga-count {
+  background: var(--customer); color: #fff; border-radius: 999px;
+  padding: 1px 9px; font-size: 12px; font-weight: 700;
+}
+.saga-item {
+  color: var(--text); font-size: 14px; padding: 5px 0; border-bottom: 1px solid var(--line);
+}
+.saga-item:last-child { border-bottom: none; }
 
 /* Notes linked to a company — shown on the card and in the map popup */
 .linked-notes { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
@@ -593,7 +608,7 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .diary-grid .diary-block:not(:last-child) { border-right: 2px solid var(--line); }
 .diary-grid .diary-block:nth-child(2) { flex: 0.72 1 0; } /* Punktar takes a bit less space */
 /* Give notes the full viewport width on phones and smaller tablets. */
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .diary-grid { flex-direction: column; gap: 0; }
   .diary-grid .diary-block { width: 100%; padding: 18px 0; border-right: none; }
   .diary-grid .diary-block:not(:last-child) { border-bottom: 2px solid var(--line); }
@@ -617,18 +632,22 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 .note-input .btn { align-self: flex-end; }
 
 .note-card {
-  position: relative; background: #fff; border: 1px solid var(--line);
-  border-radius: 12px; padding: 12px 96px 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
 }
-.note-card.editing { padding: 12px 14px; }
-.note-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-.note-body { font-size: 15px; white-space: pre-wrap; word-break: break-word; }
+.note-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 6px;
+}
+.note-meta { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.note-body { font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+.note-actions { display: flex; gap: 6px; flex: 0 0 auto; }
 .note-del {
-  position: absolute; top: 8px; right: 8px; width: 28px; height: 28px;
+  width: 28px; height: 28px;
   border: none; background: #f1f5f9; border-radius: 8px; font-size: 18px; line-height: 1; cursor: pointer; color: var(--muted);
 }
 .note-edit {
-  position: absolute; top: 8px; right: 44px; height: 28px; padding: 0 10px;
+  height: 28px; padding: 0 10px;
   border: none; background: #f1f5f9; border-radius: 8px; font-size: 13px; font-weight: 600; line-height: 28px; cursor: pointer; color: var(--muted);
 }
 .note-edit-text, .note-edit-company {

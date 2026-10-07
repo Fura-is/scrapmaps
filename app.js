@@ -518,6 +518,7 @@ function initApp() {
       t.classList.toggle("active", t.dataset.view === activeTab);
     });
     if (name === "map") setTimeout(() => map.invalidateSize(), 50);
+    if (name === "saga") renderSaga();
   }
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => showView(tab.dataset.view));
@@ -1506,33 +1507,44 @@ function initApp() {
     renderCustomerCounter();
   });
 
-  // 📖 Book: dates we landed each customer (all recorded landings, newest first)
-  let customerBookOpen = false;
-  function renderCustomerBook() {
-    const list = document.getElementById("customerBookList");
-    if (!list) return;
-    const now = new Date();
+  // 📜 Saga: every new-customer landing, all time, grouped by month (newest first)
+  function renderSaga() {
+    const totalEl = document.getElementById("sagaTotal");
+    const listEl = document.getElementById("sagaList");
+    if (!listEl) return;
     const entries = activityLog
-      .filter((a) => {
-        if (!isNewCustomerLog(a) || typeof a.t !== "number") return false;
-        const d = new Date(a.t);
-        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-      })
+      .filter((a) => isNewCustomerLog(a) && typeof a.t === "number")
       .sort((a, b) => (b.t || 0) - (a.t || 0));
-    list.innerHTML = "";
-    if (!entries.length) { list.innerHTML = `<p class="muted">Engir landaðir kúnnar skráðir enn.</p>`; return; }
+    if (totalEl) totalEl.textContent = `🟢 Nýir viðskiptavinir samtals: ${entries.length}`;
+    listEl.innerHTML = "";
+    if (!entries.length) {
+      listEl.innerHTML = `<p class="muted">Engir landaðir viðskiptavinir skráðir enn.</p>`;
+      return;
+    }
+    const groups = new Map();
     for (const a of entries) {
-      const row = document.createElement("div");
-      row.className = "customer-book-item";
-      row.textContent = "🟢 " + extractCustomerName(a) + " — " + fmtDateTime(a.t);
-      list.appendChild(row);
+      const d = new Date(a.t);
+      const key = d.getFullYear() + "-" + d.getMonth();
+      if (!groups.has(key)) groups.set(key, { y: d.getFullYear(), m: d.getMonth(), items: [] });
+      groups.get(key).items.push(a);
+    }
+    for (const g of groups.values()) {
+      const block = document.createElement("div");
+      block.className = "saga-month";
+      const h = document.createElement("h3");
+      h.className = "saga-month-title";
+      const name = MONTHS_IS[g.m].charAt(0).toUpperCase() + MONTHS_IS[g.m].slice(1);
+      h.innerHTML = `${name} ${g.y} <span class="saga-count">${g.items.length}</span>`;
+      block.appendChild(h);
+      for (const a of g.items) {
+        const row = document.createElement("div");
+        row.className = "saga-item";
+        row.textContent = "🟢 " + extractCustomerName(a) + " — " + fmtDateTime(a.t);
+        block.appendChild(row);
+      }
+      listEl.appendChild(block);
     }
   }
-  document.getElementById("customerBookBtn").addEventListener("click", () => {
-    customerBookOpen = !customerBookOpen;
-    document.getElementById("customerBookList").hidden = !customerBookOpen;
-    if (customerBookOpen) renderCustomerBook();
-  });
 
   function fmtDateTime(ms) {
     if (typeof ms !== "number") return "";
@@ -1602,11 +1614,14 @@ function initApp() {
     activityLog = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     const cutoff = Date.now() - RETENTION_MS;
     for (const a of activityLog) {
+      // Keep "new customer" landings forever so Saga shows all-time history;
+      // only the ordinary 40-day Punktar entries get purged.
+      if (a.type === "new_customer") continue;
       if (typeof a.t === "number" && a.t < cutoff) deleteDoc(doc(db, "activity", a.id)).catch(() => {});
     }
     renderLog();
     renderCustomerCounter();
-    if (customerBookOpen) renderCustomerBook();
+    renderSaga();
   }, (e) => console.error("activity sync:", e));
 
   function enterNoteEdit(card, n) {
@@ -1674,6 +1689,8 @@ function initApp() {
     for (const n of rows) {
       const card = document.createElement("div");
       card.className = "note-card";
+      const head = document.createElement("div");
+      head.className = "note-head";
       const meta = document.createElement("div");
       meta.className = "note-meta";
       meta.textContent = fmtDateTime(n.t);
@@ -1684,9 +1701,13 @@ function initApp() {
         who.style.background = AUTHOR_COLOR[n.author] || "#64748b";
         meta.appendChild(who);
       }
-      const body = document.createElement("div");
-      body.className = "note-body";
-      body.textContent = n.text || "";
+      const actions = document.createElement("div");
+      actions.className = "note-actions";
+      const edit = document.createElement("button");
+      edit.className = "note-edit";
+      edit.textContent = "edit";
+      edit.title = "Laga";
+      edit.addEventListener("click", () => enterNoteEdit(card, n));
       const del = document.createElement("button");
       del.className = "note-del";
       del.textContent = "×";
@@ -1695,15 +1716,15 @@ function initApp() {
         if (!confirm("Eyða þessum punkti?")) return;
         try { await deleteDoc(doc(db, "diary_notes", n.id)); } catch (e) { alert(e.message); }
       });
-      const edit = document.createElement("button");
-      edit.className = "note-edit";
-      edit.textContent = "edit";
-      edit.title = "Laga";
-      edit.addEventListener("click", () => enterNoteEdit(card, n));
-      card.appendChild(meta);
+      actions.appendChild(edit);
+      actions.appendChild(del);
+      head.appendChild(meta);
+      head.appendChild(actions);
+      const body = document.createElement("div");
+      body.className = "note-body";
+      body.textContent = n.text || "";
+      card.appendChild(head);
       card.appendChild(body);
-      card.appendChild(del);
-      card.appendChild(edit);
       if (n.company) {
         const foot = document.createElement("div");
         foot.className = "note-foot";
