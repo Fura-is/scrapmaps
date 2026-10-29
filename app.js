@@ -1049,7 +1049,7 @@ function initApp() {
     return String(d);
   }
 
-  // ----- Email composer (opens Mail.app via mailto:) -----
+  // ----- Email composer (opens Outlook on the web, Microsoft 365) -----
   // Standard Fura price list. Material key matches the checklist values.
   // `label` is what appears in the email (e.g. checkbox says "Járn", email says "Stál").
   const PRICE_TABLE = {
@@ -1104,8 +1104,10 @@ function initApp() {
     );
     const subject = "Verðtilboð fyrir málma";
     const body = lines.join("\n");
-    const url = `mailto:${encodeURIComponent(v.email || "")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = url;
+    // Open directly in Outlook on the web (Microsoft 365 / Fura account) with a
+    // pre-filled draft, instead of handing off to the default mail app via mailto:.
+    const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(v.email || "")}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(url, "_blank", "noopener");
     // Note: just opens the draft. Use "Mark as sent" to record + flip map pin.
   }
 
@@ -1221,7 +1223,9 @@ function initApp() {
       if (c.email) {
         const em = document.createElement("a");
         em.className = "pb-email";
-        em.href = "mailto:" + c.email;
+        em.href = "https://outlook.office.com/mail/deeplink/compose?to=" + encodeURIComponent(c.email);
+        em.target = "_blank";
+        em.rel = "noopener";
         em.textContent = "✉️ " + c.email;
         info.appendChild(em);
       }
