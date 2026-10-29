@@ -218,6 +218,18 @@ body.has-followup .view { top: 90px; }
 .cfilter-followup.active { background: #b45309; color: #fff; border-color: #b45309; }
 .sent-tag.overdue { color: #b45309; font-weight: 700; }
 
+/* Per-company follow-up controls */
+.followup-note { align-self: center; font-size: 13px; color: var(--muted); font-weight: 600; }
+.snooze-menu {
+  flex-basis: 100%; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin-top: 8px; padding: 10px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px;
+}
+.snooze-menu .snooze-label { flex-basis: 100%; font-size: 12px; font-weight: 700; color: #b45309; }
+.snooze-menu input[type="date"] {
+  padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px;
+  font-family: inherit; font-size: 13px; background: #fff; color: var(--text);
+}
+
 /* little grey hint next to a field label */
 .field-hint { font-weight: 400; color: var(--muted); font-size: 11px; }
 

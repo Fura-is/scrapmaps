@@ -1012,9 +1012,9 @@ function initApp() {
       markBtn.addEventListener("click", () => markAsSent(v));
       actions.appendChild(markBtn);
     } else {
+      const od = followupDays(v);
       const tag = document.createElement("span");
       tag.className = "sent-tag";
-      const od = followupDays(v);
       if (od != null) {
         tag.classList.add("overdue");
         tag.textContent = `⏰ ${od} dagar síðan sent (${formatDate(v.emailSentAt)}) — fylgja eftir`;
@@ -1022,6 +1022,46 @@ function initApp() {
         tag.textContent = "✉ Sent " + formatDate(v.emailSentAt);
       }
       actions.appendChild(tag);
+
+      // Per-company follow-up reminder controls (only for the "waiting for reply" stage)
+      if (v.status === "bidpost") {
+        if (od != null) {
+          const snooze = document.createElement("button");
+          snooze.className = "btn ghost small";
+          snooze.textContent = "⏰ Fresta";
+          snooze.title = "Velja nýja dagsetningu fyrir áminninguna";
+          snooze.addEventListener("click", () => openSnoozeMenu(snooze, v));
+          actions.appendChild(snooze);
+
+          const off = document.createElement("button");
+          off.className = "btn ghost small";
+          off.textContent = "🔕 Slökkva";
+          off.title = "Hætta að minna á þetta fyrirtæki";
+          off.addEventListener("click", () => setFollowup(v, { followupOff: true, followupSnoozeUntil: deleteField() }));
+          actions.appendChild(off);
+        } else if (v.followupOff) {
+          const note = document.createElement("span");
+          note.className = "followup-note";
+          note.textContent = "🔕 Áminning slökkt";
+          actions.appendChild(note);
+          const on = document.createElement("button");
+          on.className = "btn ghost small";
+          on.textContent = "Kveikja aftur";
+          on.addEventListener("click", () => setFollowup(v, { followupOff: deleteField(), followupSnoozeUntil: deleteField() }));
+          actions.appendChild(on);
+        } else if (isSnoozed(v)) {
+          const note = document.createElement("span");
+          note.className = "followup-note";
+          note.textContent = "⏰ Minnt aftur " + formatDate(new Date(v.followupSnoozeUntil));
+          actions.appendChild(note);
+          const on = document.createElement("button");
+          on.className = "btn ghost small";
+          on.textContent = "Núllstilla";
+          on.title = "Minna strax (fjarlægja frestun)";
+          on.addEventListener("click", () => setFollowup(v, { followupSnoozeUntil: deleteField(), followupOff: deleteField() }));
+          actions.appendChild(on);
+        }
+      }
 
       const unmarkBtn = document.createElement("button");
       unmarkBtn.className = "btn ghost";
@@ -1086,13 +1126,70 @@ function initApp() {
     const d = new Date(ts);
     return isNaN(d.getTime()) ? null : d.getTime();
   }
-  // Returns number of days since the email was sent if it's overdue (status still "bidpost"), else null
+  function startOfDayMs(ms) {
+    const d = new Date(ms);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+  // Reminder snoozed = user picked a future date to be reminded again
+  function isSnoozed(v) {
+    return !!(v && v.followupSnoozeUntil && Date.now() < v.followupSnoozeUntil);
+  }
+  // Returns number of days since the email was sent if it's overdue (status still "bidpost"),
+  // respecting the per-company "off" and "snooze until" settings. Else null.
   function followupDays(v) {
     if (!v || v.status !== "bidpost") return null;
+    if (v.followupOff) return null;
+    if (isSnoozed(v)) return null;
     const ms = tsMillis(v.emailSentAt);
     if (ms == null) return null;
     const days = Math.floor((Date.now() - ms) / 86400000);
     return days >= FOLLOWUP_DAYS ? days : null;
+  }
+  // Save a follow-up setting change on a place (off / snooze / reset)
+  async function setFollowup(v, patch) {
+    try {
+      await updateDoc(doc(db, "places", v.id), { ...patch, updatedAt: serverTimestamp() });
+    } catch (e) {
+      alert("Tókst ekki að vista áminningu: " + e.message);
+    }
+  }
+  // Inline menu to pick when the reminder should pop up again (quick options + date picker)
+  function openSnoozeMenu(anchor, v) {
+    const host = anchor.parentElement;
+    const existing = host.querySelector(".snooze-menu");
+    if (existing) { existing.remove(); return; }
+    const menu = document.createElement("div");
+    menu.className = "snooze-menu";
+    const label = document.createElement("div");
+    label.className = "snooze-label";
+    label.textContent = "Minna mig aftur á:";
+    menu.appendChild(label);
+    for (const [txt, days] of [["+3 dagar", 3], ["+1 vika", 7], ["+2 vikur", 14]]) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn ghost small";
+      b.textContent = txt;
+      b.addEventListener("click", () =>
+        setFollowup(v, { followupSnoozeUntil: startOfDayMs(Date.now() + days * 86400000), followupOff: deleteField() })
+      );
+      menu.appendChild(b);
+    }
+    const date = document.createElement("input");
+    date.type = "date";
+    date.min = new Date().toISOString().slice(0, 10);
+    date.value = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    menu.appendChild(date);
+    const set = document.createElement("button");
+    set.type = "button";
+    set.className = "btn primary small";
+    set.textContent = "Setja dag";
+    set.addEventListener("click", () => {
+      if (!date.value) return;
+      setFollowup(v, { followupSnoozeUntil: new Date(date.value + "T00:00:00").getTime(), followupOff: deleteField() });
+    });
+    menu.appendChild(set);
+    host.appendChild(menu);
   }
   function followupPlaces() {
     return companyRows()
