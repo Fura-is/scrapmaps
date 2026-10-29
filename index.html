@@ -30,6 +30,9 @@
     <button class="tab" data-view="saga">📜 Saga</button>
   </nav>
 
+  <!-- Follow-up reminder: appears when an email was sent 7+ days ago with no reply yet -->
+  <div id="followupBanner" class="hidden"></div>
+
   <!-- ============================================================ -->
   <!-- PART 1 — Map -->
   <!-- ============================================================ -->
@@ -151,8 +154,8 @@
           <input name="contact" type="text" placeholder="Nafn tengiliðs" />
         </label>
 
-        <label>Email
-          <input name="email" type="email" placeholder="netfang@fyrirtaeki.is" />
+        <label>Email <span class="field-hint">(fleiri en eitt — aðgreind með kommu)</span>
+          <input name="email" type="text" placeholder="netfang@fyrirtaeki.is, annad@fyrirtaeki.is" autocomplete="off" />
         </label>
 
         <fieldset>
@@ -208,6 +211,7 @@
       </div>
       <div class="companies-filter">
         <button class="cfilter active" data-cfilter="all">Allt</button>
+        <button class="cfilter cfilter-followup" data-cfilter="followup">⏰ Eftirfylgni</button>
         <button class="cfilter" data-cfilter="spotta">⚪ Spotta</button>
         <button class="cfilter" data-cfilter="kobbi">🟤 Kobbi</button>
         <button class="cfilter" data-cfilter="progress">🟣 Spjalla</button>

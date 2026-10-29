@@ -232,6 +232,7 @@ function initApp() {
       renderMarkers();
       renderList();
       if (typeof renderCompanies === "function") renderCompanies();
+      if (typeof renderFollowupBanner === "function") renderFollowupBanner();
       statusbar.textContent = `${places.length} place${places.length === 1 ? "" : "s"} · synced`;
     },
     (err) => {
@@ -769,7 +770,7 @@ function initApp() {
     f.company.value = v.company || v.name || "";
     f.address.value = shortAddress(v.address || "");
     f.contact.value = v.contact || "";
-    f.email.value = v.email || "";
+    f.email.value = emailsOf(v).join(", ");
     f.notes.value = v.notes || "";
     setChecklistMaterials(v.materials);
     f.hasForklift.checked = !!v.hasForklift;
@@ -801,7 +802,8 @@ function initApp() {
     const company = f.company.value.trim();
     const address = f.address.value.trim();
     const notes = f.notes.value.trim();
-    const email = f.email.value.trim();
+    const emails = parseEmails(f.email.value);
+    const email = emails[0] || ""; // keep primary in legacy field for back-compat
     const contact = f.contact.value.trim();
     const status = clStatusSel.value || "spotta";
     const wasEdit = !!clPlaceId;
@@ -809,7 +811,7 @@ function initApp() {
     // one entity: the map pin holds everything (company = pin)
     const placeData = {
       name: company || address || "Untitled",
-      address, status, notes, email, contact, materials,
+      address, status, notes, email, emails, contact, materials,
       hasForklift: f.hasForklift.checked,
       lat: clLat, lng: clLng,
       updatedAt: serverTimestamp(),
@@ -826,7 +828,7 @@ function initApp() {
         const ch = [];
         if (oldPlace && oldPlace.status !== status) ch.push(`staða ${STATUS_LABEL[oldPlace.status] || oldPlace.status} → ${stageLabel}`);
         if (oldPlace && (oldPlace.notes || "") !== notes) ch.push("athugasemdir");
-        if (oldPlace && (oldPlace.email || "") !== email) ch.push("email");
+        if (oldPlace && emailsOf(oldPlace).join(",") !== emails.join(",")) ch.push("email");
         if (oldPlace && (oldPlace.contact || "") !== contact) ch.push("tengilið");
         logActivity(`✏️ ${company || "fyrirtæki"} — ${ch.length ? ch.join(", ") : "uppfært"} (staða: ${stageLabel})`, gotCustomer ? "new_customer" : null);
       } else {
@@ -884,7 +886,9 @@ function initApp() {
   function renderCompanies() {
     const q = companiesSearch.value.trim().toLowerCase();
     const filtered = companyRows().filter((v) => {
-      if (companiesFilter !== "all") {
+      if (companiesFilter === "followup") {
+        if (followupDays(v) == null) return false;
+      } else if (companiesFilter !== "all") {
         if (companiesFilter === "samkeppni") {
           if (!["samkeppni", "hringras", "malmar"].includes(v.status)) return false;
         } else if (companiesFilter === "spotta") {
@@ -892,7 +896,7 @@ function initApp() {
         } else if (v.status !== companiesFilter) return false;
       }
       if (!q) return true;
-      const hay = [v.company, v.contact, v.email, v.address, v.priorities, v.notes, (v.materials || []).join(" ")]
+      const hay = [v.company, v.contact, emailsOf(v).join(" "), v.address, v.priorities, v.notes, (v.materials || []).join(" ")]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -928,7 +932,8 @@ function initApp() {
     meta.className = "meta";
     const metaBits = [];
     if (v.contact) metaBits.push(v.contact);
-    if (v.email) metaBits.push(v.email);
+    const cardEmails = emailsOf(v);
+    if (cardEmails.length) metaBits.push(cardEmails.join(", "));
     meta.textContent = metaBits.join(" · ");
     if (metaBits.length) card.appendChild(meta);
 
@@ -1009,7 +1014,13 @@ function initApp() {
     } else {
       const tag = document.createElement("span");
       tag.className = "sent-tag";
-      tag.textContent = "✉ Sent " + formatDate(v.emailSentAt);
+      const od = followupDays(v);
+      if (od != null) {
+        tag.classList.add("overdue");
+        tag.textContent = `⏰ ${od} dagar síðan sent (${formatDate(v.emailSentAt)}) — fylgja eftir`;
+      } else {
+        tag.textContent = "✉ Sent " + formatDate(v.emailSentAt);
+      }
       actions.appendChild(tag);
 
       const unmarkBtn = document.createElement("button");
@@ -1047,6 +1058,77 @@ function initApp() {
     if (d && typeof d.toDate === "function") d = d.toDate();
     if (d instanceof Date) return d.toLocaleDateString("is-IS");
     return String(d);
+  }
+
+  // ----- Emails (a company can have more than one) -----
+  function parseEmails(str) {
+    return [...new Set(
+      String(str || "")
+        .split(/[\s,;]+/)
+        .map((s) => s.trim())
+        .filter((s) => s.includes("@"))
+    )];
+  }
+  // Normalised list of a place's emails (new `emails` array, falling back to legacy `email`)
+  function emailsOf(v) {
+    if (v && Array.isArray(v.emails) && v.emails.length) return v.emails;
+    if (v && v.email) return parseEmails(v.email);
+    return [];
+  }
+
+  // ----- Follow-up reminder: email sent 7+ days ago, still waiting for a reply -----
+  const FOLLOWUP_DAYS = 7;
+  function tsMillis(ts) {
+    if (!ts) return null;
+    if (typeof ts.toMillis === "function") return ts.toMillis();
+    if (typeof ts.toDate === "function") return ts.toDate().getTime();
+    if (typeof ts.seconds === "number") return ts.seconds * 1000;
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? null : d.getTime();
+  }
+  // Returns number of days since the email was sent if it's overdue (status still "bidpost"), else null
+  function followupDays(v) {
+    if (!v || v.status !== "bidpost") return null;
+    const ms = tsMillis(v.emailSentAt);
+    if (ms == null) return null;
+    const days = Math.floor((Date.now() - ms) / 86400000);
+    return days >= FOLLOWUP_DAYS ? days : null;
+  }
+  function followupPlaces() {
+    return companyRows()
+      .filter((v) => followupDays(v) != null)
+      .sort((a, b) => (tsMillis(a.emailSentAt) || 0) - (tsMillis(b.emailSentAt) || 0)); // oldest first
+  }
+  function renderFollowupBanner() {
+    const banner = document.getElementById("followupBanner");
+    if (!banner) return;
+    const list = followupPlaces();
+    const chip = document.querySelector(".cfilter-followup");
+    if (chip) chip.textContent = list.length ? `⏰ Eftirfylgni (${list.length})` : "⏰ Eftirfylgni";
+    if (!list.length) {
+      banner.classList.add("hidden");
+      banner.innerHTML = "";
+      document.body.classList.remove("has-followup");
+    } else {
+      banner.classList.remove("hidden");
+      document.body.classList.add("has-followup");
+      banner.innerHTML = "";
+      const txt = document.createElement("span");
+      txt.className = "followup-text";
+      txt.textContent = `⏰ ${list.length} ${list.length === 1 ? "fyrirtæki bíður" : "fyrirtæki bíða"} eftirfylgni — vika+ síðan tölvupóstur sendur`;
+      const see = document.createElement("button");
+      see.className = "followup-see";
+      see.textContent = "Sjá";
+      see.addEventListener("click", () => {
+        companiesFilter = "followup";
+        document.querySelectorAll(".cfilter").forEach((b) => b.classList.toggle("active", b.dataset.cfilter === "followup"));
+        showView("companies");
+        renderCompanies();
+      });
+      banner.appendChild(txt);
+      banner.appendChild(see);
+    }
+    if (map && typeof map.invalidateSize === "function") setTimeout(() => map.invalidateSize(), 60);
   }
 
   // ----- Email composer (opens Outlook on the web, Microsoft 365) -----
@@ -1106,7 +1188,7 @@ function initApp() {
     const body = lines.join("\n");
     // Open directly in Outlook on the web (Microsoft 365 / Fura account) with a
     // pre-filled draft, instead of handing off to the default mail app via mailto:.
-    const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(v.email || "")}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(emailsOf(v).join(";"))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(url, "_blank", "noopener");
     // Note: just opens the draft. Use "Mark as sent" to record + flip map pin.
   }

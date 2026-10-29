@@ -196,6 +196,31 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
   border-bottom-color: var(--visit);
 }
 
+/* Follow-up reminder banner — sits just under the tab bar, pushes views down */
+#followupBanner {
+  position: fixed; top: 50px; left: 0; right: 0; z-index: 1650;
+  display: flex; align-items: center; gap: 10px;
+  height: 40px; padding: 0 14px;
+  background: #b45309; color: #fff;
+  font-size: 13px; font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+#followupBanner.hidden { display: none; }
+.followup-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.followup-see {
+  flex: 0 0 auto; border: none; background: #fff; color: #b45309;
+  border-radius: 999px; padding: 4px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+body.has-followup .view { top: 90px; }
+
+/* Follow-up filter chip + overdue "sent" tag */
+.cfilter-followup { border-color: #f59e0b; color: #b45309; }
+.cfilter-followup.active { background: #b45309; color: #fff; border-color: #b45309; }
+.sent-tag.overdue { color: #b45309; font-weight: 700; }
+
+/* little grey hint next to a field label */
+.field-hint { font-weight: 400; color: var(--muted); font-size: 11px; }
+
 /* ============================================================
    View containers — each "part" of the app
    ============================================================ */
